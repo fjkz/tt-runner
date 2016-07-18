@@ -45,7 +45,7 @@ not ok 2 test2.sh # 0.0 sec
 # time = 0.0 sec
 ```
 
-TT-Runner verifies whether each test succeeded or failed with the exit-code. Therefore, each testing script must return non-zero exit-code when the test fails.
+TT-Runner verifies whether each test succeeded or failed with the exit-code. Therefore, each testing script must return a non-zero exit-code when the test fails.
 
 The output in the stdout is obeying Test Anything Protocol (TAP). We can integrate TT-Runner to Jenkins with Jenkins TAP Plugin.
 
@@ -58,7 +58,7 @@ not ok 2 test2.sh # 0.0 sec
 
 ### Before / After
 
-Like `@Before` (`@After`) in JUnit4, TT-Runner run preconditioning (postconditioning) scripts before (after) each test cases. A preconditioning (postconditioning) script has a file name start with "before" or "setup"("after" or "teardown").
+Like `@Before` (`@After`) in JUnit4, TT-Runner runs preconditioning (postconditioning) scripts before (after) each test case. A preconditioning (postconditioning) script has a file name starts with "before" or "setup"("after" or "teardown").
 
 ```
 $ tree sample/test-before-after
@@ -78,7 +78,7 @@ ok 5 test2.sh # 0.0 sec
 ok 6 after.sh # 0.0 sec
 ```
 
-Unlike JUnit, the before or after scripts is considered as separated operations from tests. However, they are not independent. When the before operation fails, the following test is skipped.
+Unlike JUnit, the before or after scripts are considered as separated operations from test cases. However, they are not independent. When a before operation fails, the following test cases are skipped.
 
 ```
 $ ./bin/tt-runner.py sample/test-skip 2>/dev/null
@@ -139,7 +139,7 @@ ok 8 test1/run2.sh # 0.0 sec
 ok 9 teardown/run.sh # 0.0 sec
 ```
 
-Each node in the tree is symmetric. Therefore, we can gather some test suite under the same directory and can run them at once.
+Each node in the tree is symmetric. We can gather some test suite under the same directory and can run them at once.
 
 ```
 $ ./bin/tt-runner.py sample 2>/dev/null
@@ -159,7 +159,7 @@ ok 24 test-before-after/after.sh # 0.0 sec
 
 ### Randomize the Test's Order
 
-Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. When randomized the tt-ruuner.py shuffle the order of tests in the same directory. The random seed is printed at the tail of the stderr.
+Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr.
 ```
 $ ./bin/tt-runner.py --randomize sample/test-simple
 1..2
