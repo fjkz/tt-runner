@@ -20,7 +20,7 @@ sample/test-simple
 └── test2.sh
 ```
 
-File names of test cases are required to start with "test" or "run". This can be configured with the `--run-prefix` option.
+File names of test cases are required to start with "test". This can be configured with the `--test-prefix` option.
 
 Each script must be executable. Any programming language is available, but do not forget the shebang.
 
@@ -58,24 +58,30 @@ not ok 2 test2.sh # 0.0 sec
 
 ### Before / After
 
-Like `@Before` (`@After`) in JUnit4, TT-Runner runs preconditioning (postconditioning) scripts before (after) each test case. A preconditioning (postconditioning) script has a file name starts with "before" or "setup"("after" or "teardown").
+Like `@Before` (`@After`) in JUnit4, TT-Runner runs preconditioning (postconditioning) scripts before (after) each test case. A preconditioning (postconditioning) script has a file name starts with "before" ("after").
 
 ```
 $ tree sample/test-before-after
 sample/test-before-after
-├── after.sh
-├── before.sh
+├── after1.sh
+├── after2.sh
+├── before1.sh
+├── before2.sh
 ├── test1.sh
 └── test2.sh
 
 $ ./bin/tt-runner.py sample/test-before-after 2>/dev/null
-1..6
-ok 1 before.sh # 0.0 sec
-ok 2 test1.sh # 0.0 sec
-ok 3 after.sh # 0.0 sec
-ok 4 before.sh # 0.0 sec
-ok 5 test2.sh # 0.0 sec
-ok 6 after.sh # 0.0 sec
+1..10
+ok 1 before1.sh # 0.0 sec
+ok 2 before2.sh # 0.0 sec
+ok 3 test1.sh # 0.0 sec
+ok 4 after2.sh # 0.0 sec
+ok 5 after1.sh # 0.0 sec
+ok 6 before1.sh # 0.0 sec
+ok 7 before2.sh # 0.0 sec
+ok 8 test2.sh # 0.0 sec
+ok 9 after2.sh # 0.0 sec
+ok 10 after1.sh # 0.0 sec
 ```
 
 Unlike JUnit, the before or after scripts are considered as separated operations from test cases. However, they are not independent. When a before operation fails, the following test cases are skipped.
@@ -89,22 +95,26 @@ ok 2 test.sh # SKIP
 ok 3 after.sh # 0.0 sec
 ```
 
-Equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4 are also available. Scripts starting with "before-all" or "first" ("after-all" or "last") are run once before (after) all tests in the same directory. They are used for deploying the tested program before testing, for example.
+Equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4 are also available. Scripts starting with "before-all" ("after-all") are run once before (after) all tests in the same directory. They are used for deploying the tested program before testing, for example.
 
 ```
 $ tree sample/test-before-after-all
 sample/test-before-after-all
-├── after-all.sh
-├── before-all.sh
+├── after-all1.sh
+├── after-all2.sh
+├── before-all1.sh
+├── before-all2.sh
 ├── test1.sh
 └── test2.sh
 
 $ ./bin/tt-runner.py sample/test-before-after-all 2>/dev/null
-1..4
-ok 1 before-all.sh # 0.0 sec
-ok 2 test1.sh # 0.0 sec
-ok 3 test2.sh # 0.0 sec
-ok 4 after-all.sh # 0.0 sec
+1..6
+ok 1 before-all1.sh # 0.0 sec
+ok 2 before-all2.sh # 0.0 sec
+ok 3 test1.sh # 0.0 sec
+ok 4 test2.sh # 0.0 sec
+ok 5 after-all2.sh # 0.0 sec
+ok 6 after-all1.sh # 0.0 sec
 ```
 
 The prefixes can be configured with following command line options: `--before-prefix`, `--after-prefix`, `--before-all-prefix` and `--after-all-prefix`.
@@ -114,47 +124,48 @@ The prefixes can be configured with following command line options: `--before-pr
 Test scripts can be nested. In the other word, they can be tree-structured. In each node, the before / after operations can be defined.
 
 ```
+$ tree sample/test-nest
 sample/test-nest
-├── setup
-│   └── run.sh
-├── teardown
+├── after
+│   ├── run1.sh
+│   └── run2.sh
+├── before
 │   └── run.sh
 ├── test1
 │   ├── before.sh
-│   ├── run1.sh
-│   └── run2.sh
+│   ├── test1.sh
+│   └── test2.sh
 └── test2
     └── run.sh
 
 $ ./bin/tt-runner.py sample/test-nest 2>/dev/null
-1..9
-ok 1 setup/run.sh # 0.0 sec
+1..11
+ok 1 before/run.sh # 0.0 sec
 ok 2 test2/run.sh # 0.0 sec
-ok 3 teardown/run.sh # 0.0 sec
-ok 4 setup/run.sh # 0.0 sec
-ok 5 test1/before.sh # 0.0 sec
-ok 6 test1/run1.sh # 0.0 sec
-ok 7 test1/before.sh # 0.0 sec
-ok 8 test1/run2.sh # 0.0 sec
-ok 9 teardown/run.sh # 0.0 sec
+ok 3 after/run1.sh # 0.0 sec
+ok 4 after/run2.sh # 0.0 sec
+ok 5 before/run.sh # 0.0 sec
+ok 6 test1/before.sh # 0.0 sec
+ok 7 test1/test1.sh # 0.0 sec
+ok 8 test1/before.sh # 0.0 sec
+ok 9 test1/test2.sh # 0.0 sec
+ok 10 after/run1.sh # 0.0 sec
+ok 11 after/run2.sh # 0.0 sec
 ```
 
 Each node in the tree is symmetric. We can gather some test suite under the same directory and can run them at once.
 
 ```
 $ ./bin/tt-runner.py sample 2>/dev/null
-1..24
+1..32
 not ok 1 test-skip/before.sh # 0.0 sec
 ok 2 test-skip/test.sh # SKIP
 # skipped because test-skip/before.sh did not succeed.
 ok 3 test-skip/after.sh # 0.0 sec
-ok 4 test-simple/test1.sh # 0.0 sec
-not ok 5 test-simple/test2.sh # 0.0 sec
-ok 6 test-before-after-all/before-all.sh # 0.0 sec
 ...
-ok 22 test-before-after/before.sh # 0.0 sec
-ok 23 test-before-after/test2.sh # 0.0 sec
-ok 24 test-before-after/after.sh # 0.0 sec
+ok 30 test-before-after/test2.sh # 0.0 sec
+ok 31 test-before-after/after2.sh # 0.0 sec
+ok 32 test-before-after/after1.sh # 0.0 sec
 ```
 
 ### Randomize the Test's Order

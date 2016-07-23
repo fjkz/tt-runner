@@ -19,6 +19,7 @@ COLOR_OUTPUT = False
 RANDOMIZE = False
 RAND_SEED = 0
 
+TEST_PREFIXES = []
 RUN_PREFIXES = []
 BEFORE_PREFIXES = []
 AFTER_PREFIXES = []
@@ -46,34 +47,39 @@ def parse_args():
             help='the random seed. ' +
                  'Ignored when the --randomize option is not set.')
 
-    parser.add_argument('--run-prefix', nargs='+',
-            default=['run', 'test'],
-            help='prefix of the main scripts. ' +
-                 'In default, "run" and "test" are specified.')
+    parser.add_argument('--test-prefix', nargs=1,
+            default=['test'],
+            help='prefix of main testing scripts. ' +
+                 'In default, "test" is specified.')
 
-    parser.add_argument('--before-prefix', nargs='+',
-            default=['before', 'setup'],
-            help='prefix of the preconditioning scripts that ' +
+    parser.add_argument('--run-prefix', nargs=1,
+            default=['run'],
+            help='prefix of operation scripts. ' +
+                 'In default, "run" is specified.')
+
+    parser.add_argument('--before-prefix', nargs=1,
+            default=['before'],
+            help='prefix of preconditioning scripts that ' +
                  'run before each test in the same directory. ' +
-                 'In default, "before" and "setup" are specified.')
+                 'In default, "before" is specified.')
 
-    parser.add_argument('--after-prefix', nargs='+',
-            default=['after', 'teardown'],
-            help='prefix of the postconditioning scripts that ' +
+    parser.add_argument('--after-prefix', nargs=1,
+            default=['after'],
+            help='prefix of postconditioning scripts that ' +
                  'run after each test in the same directory. ' +
-                 'In default, "after"  and  "teardown" are specified.')
+                 'In default, "after" is specified.')
 
-    parser.add_argument('--before-all-prefix', nargs='+',
-            default=['before-all', 'first'],
-            help='prefix of the preconditioning scripts that ' +
+    parser.add_argument('--before-all-prefix', nargs=1,
+            default=['before-all'],
+            help='prefix of preconditioning scripts that ' +
                  'run once before all tests in the same directory. ' +
-                 'In default, "before-all" and "first" are specified.')
+                 'In default, "before-all" is specified.')
 
-    parser.add_argument('--after-all-prefix', nargs='+',
-            default=['after-all', 'last'],
-            help='prefix of the preconditioning scripts that ' +
+    parser.add_argument('--after-all-prefix', nargs=1,
+            default=['after-all'],
+            help='prefix of preconditioning scripts that ' +
                  'run once after all tests in the same directory. ' +
-                 'In default, "after-all" and "last" are specified.')
+                 'In default, "after-all" is specified.')
 
     args = parser.parse_args()
 
@@ -89,11 +95,13 @@ def parse_args():
     RAND_SEED = args.random_seed[0]
     random.seed(RAND_SEED)
 
+    global TEST_PREFIXES
     global RUN_PREFIXES
     global BEFORE_PREFIXES
     global AFTER_PREFIXES
     global BEFORE_ALL_PREFIXES
     global AFTER_ALL_PREFIXES
+    TEST_PREFIXES = args.test_prefix
     RUN_PREFIXES = args.run_prefix
     BEFORE_PREFIXES = args.before_prefix
     AFTER_PREFIXES = args.after_prefix
@@ -110,6 +118,7 @@ class Node():
         self.path = path
 
         # Child nodes.
+        self.tests = []
         self.runs = []
         self.befores = []
         self.afters = []
@@ -126,7 +135,8 @@ class Node():
         return os.path.relpath(self.path, ROOT_PATH)
 
     def is_empty(self):
-        if (len(self.runs) == 0 and
+        if (len(self.tests) == 0 and
+            len(self.runs) == 0 and
             len(self.befores) == 0 and
             len(self.afters) == 0 and
             len(self.before_alls) == 0 and
@@ -247,9 +257,21 @@ def create_tree(path):
         # If the directory entry has one of prefixes,
         # add it to the child nodes.
 
+        if has_prefix(entry, TEST_PREFIXES):
+            child_node = get_child_node(child_path)
+            if child_node == None:
+                continue
+            node.tests.append(child_node)
+
+        elif has_prefix(entry, RUN_PREFIXES):
+            child_node = get_child_node(child_path)
+            if child_node == None:
+                continue
+            node.runs.append(child_node)
+
         # Before-all and after-all prefixes have higher priority
         # than before and after prefixes.
-        if has_prefix(entry, BEFORE_ALL_PREFIXES):
+        elif has_prefix(entry, BEFORE_ALL_PREFIXES):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
@@ -273,12 +295,6 @@ def create_tree(path):
                 continue
             node.afters.append(child_node)
 
-        elif has_prefix(entry, RUN_PREFIXES):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.runs.append(child_node)
-
     return node
 
 def create_plan(root_node):
@@ -286,12 +302,18 @@ def create_plan(root_node):
     Return a list of operations.
     '''
 
-    def randomize_list(in_list):
+    def randomize_nodes(in_nodes):
         if not RANDOMIZE:
-            return in_list
-        out_list = copy.copy(in_list)
-        random.shuffle(out_list)
-        return out_list
+            return in_nodes
+        out_nodes = copy.copy(in_nodes)
+        random.shuffle(out_nodes)
+        return out_nodes
+
+    def sorted_nodes(in_nodes):
+        return sorted(in_nodes, key=lambda node: node.path)
+
+    def revsorted_nodes(in_nodes):
+        return sorted(in_nodes, key=lambda node: node.path, reverse=True)
 
     def visit(node, depends):
         '''
@@ -305,27 +327,28 @@ def create_plan(root_node):
             return [op]
 
         before_all_ops = []
-        for before_all_node in randomize_list(node.before_alls):
+        for before_all_node in sorted_nodes(node.before_alls):
             ops = visit(before_all_node, depends)
             before_all_ops.extend(ops)
 
         after_all_ops= []
-        for after_all_node in randomize_list(node.after_alls):
+        for after_all_node in revsorted_nodes(node.after_alls):
             ops = visit(after_all_node, depends)
             after_all_ops.extend(ops)
 
         # Operations depended by other operations.
         my_depends = copy.copy(depends)
-        # Before, after and run operations depends on before-all operations.
+        # Before, after and run, test operations
+        # depends on before-all operations.
         my_depends.extend(before_all_ops)
 
         before_ops = []
-        for before_node in randomize_list(node.befores):
+        for before_node in sorted_nodes(node.befores):
             ops = visit(before_node, my_depends)
             before_ops.extend(ops)
 
         after_ops= []
-        for after_node in randomize_list(node.afters):
+        for after_node in revsorted_nodes(node.afters):
             ops = visit(after_node, my_depends)
             after_ops.extend(ops)
 
@@ -338,10 +361,18 @@ def create_plan(root_node):
 
         ops_under_node.extend(before_all_ops)
 
-        for run_node in randomize_list(node.runs):
+        for run_node in sorted_nodes(node.runs):
             ops_under_node.extend(before_ops)
 
             run_ops = visit(run_node, my_depends)
+            ops_under_node.extend(run_ops)
+
+            ops_under_node.extend(after_ops)
+
+        for test_node in randomize_nodes(node.tests):
+            ops_under_node.extend(before_ops)
+
+            run_ops = visit(test_node, my_depends)
             ops_under_node.extend(run_ops)
 
             ops_under_node.extend(after_ops)
