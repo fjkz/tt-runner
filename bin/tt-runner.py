@@ -41,7 +41,7 @@ def parse_args():
             help='color output')
 
     parser.add_argument('--randomize', action='store_true',
-            help='randomize the order of running')
+            help='randomize the order of running tests')
     parser.add_argument('--random-seed', nargs=1, type=int,
             default=[random.randint(0,65535)],
             help='the random seed. ' +
@@ -59,25 +59,25 @@ def parse_args():
 
     parser.add_argument('--before-prefix', nargs=1,
             default=['before'],
-            help='prefix of preconditioning scripts that ' +
+            help='prefix of preconditioning scripts ' +
                  'run before each test in the same directory. ' +
                  'In default, "before" is specified.')
 
     parser.add_argument('--after-prefix', nargs=1,
             default=['after'],
-            help='prefix of postconditioning scripts that ' +
+            help='prefix of postconditioning scripts ' +
                  'run after each test in the same directory. ' +
                  'In default, "after" is specified.')
 
     parser.add_argument('--before-all-prefix', nargs=1,
             default=['before-all'],
-            help='prefix of preconditioning scripts that ' +
+            help='prefix of preconditioning scripts ' +
                  'run once before all tests in the same directory. ' +
                  'In default, "before-all" is specified.')
 
     parser.add_argument('--after-all-prefix', nargs=1,
             default=['after-all'],
-            help='prefix of preconditioning scripts that ' +
+            help='prefix of postconditioning scripts ' +
                  'run once after all tests in the same directory. ' +
                  'In default, "after-all" is specified.')
 
