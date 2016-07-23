@@ -361,13 +361,11 @@ def create_plan(root_node):
 
         ops_under_node.extend(before_all_ops)
 
+        ops_under_node.extend(before_ops)
         for run_node in sorted_nodes(node.runs):
-            ops_under_node.extend(before_ops)
-
             run_ops = visit(run_node, my_depends)
             ops_under_node.extend(run_ops)
-
-            ops_under_node.extend(after_ops)
+        ops_under_node.extend(after_ops)
 
         for test_node in randomize_nodes(node.tests):
             ops_under_node.extend(before_ops)
