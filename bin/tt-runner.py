@@ -8,6 +8,7 @@ import argparse
 import copy
 import os
 import random
+import signal
 import stat
 import subprocess
 import sys
@@ -215,6 +216,11 @@ class Operation():
             self.message = ('OSError: ' + str(e) + '\n' +
                             'Is the shebang correct?')
             return
+
+        except KeyboardInterrupt as i:
+            process.send_signal(signal.SIGINT)
+            process.wait()
+            self.message = 'KeyboardInterrupt'
 
         end = time.time()
         self.elapsed = end - start
