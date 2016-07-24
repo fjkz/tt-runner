@@ -74,25 +74,6 @@ Each node can have child nodes as directory entries. That is, the test suite has
 Test nodes are main test cases.
 
 Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr.
-```
-$ ./bin/tt-runner.py --randomize sample/test-simple
-1..2
-
-# run test2.sh
-test2's output
-not ok 1 test2.sh # 0.0 sec
-
-# run test1.sh
-test1's output
-ok 2 test1.sh # 0.0 sec
-
-# tests = 2
-# succeeded = 1
-# failed = 1
-# skipped = 0
-# time = 0.0 sec
-# random-seed = 39207
-```
 
 For repeatablity, the random seed can be assigned with the `--random-seed` option.
 
@@ -100,7 +81,7 @@ For repeatablity, the random seed can be assigned with the `--random-seed` optio
 
 Run nodes are used as children of other node types. Unlike test nodes, run node has sequences. They are run by the ascending order.
 
-We do not recommend that run nodes should be included in the same directory where other type nodes exists.
+We do not recommend that run nodes and other type nodes should be included in the same directory.
 
 ### Before / after node
 
