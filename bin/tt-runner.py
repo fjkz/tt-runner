@@ -20,6 +20,8 @@ COLOR_OUTPUT = False
 RANDOMIZE = False
 RAND_SEED = 0
 CHDIR = True
+STOP_ON_FAILURE = False
+SKIP_ALL = False # can be changed in running
 
 TEST_PREFIXES = []
 RUN_PREFIXES = []
@@ -52,6 +54,12 @@ def parse_args():
     parser.add_argument('--no-chdir', action='store_true',
             help='do not change the working directory to the directory ' +
                  'where a script exists.')
+
+    parser.add_argument('--stop-on-failure', action='store_true',
+            help='skip remaining operations if an operation fails')
+
+    parser.add_argument('--skip-all', action='store_true',
+            help='skip all operations.')
 
     parser.add_argument('--test-prefix', nargs=1,
             default=['test'],
@@ -103,6 +111,11 @@ def parse_args():
 
     global CHDIR
     CHDIR = not args.no_chdir
+
+    global STOP_ON_FAILURE
+    global SKIP_ALL
+    STOP_ON_FAILURE = args.stop_on_failure
+    SKIP_ALL = args.skip_all
 
     global TEST_PREFIXES
     global RUN_PREFIXES
@@ -196,6 +209,10 @@ class Operation():
         Exec this operation.
         The result is set into field variables.
         '''
+
+        if SKIP_ALL:
+            self.status = Operation.SKIPPED
+            return
 
         # Skip if depending operation did not succeed.
         for depend_op in self.depends:
@@ -434,6 +451,10 @@ def run_ops(operations):
 
         else:
             assert False
+
+        if STOP_ON_FAILURE and op.status == Operation.FAILED:
+            global SKIP_ALL
+            SKIP_ALL = True
 
 def summarize(operations):
     '''
