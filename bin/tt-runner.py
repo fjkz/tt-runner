@@ -50,42 +50,42 @@ def parse_args():
                  'Ignored when the --randomize option is not set.')
 
     parser.add_argument('--no-chdir', action='store_true',
-            help='do not change the workind directory to the directory ' +
+            help='do not change the working directory to the directory ' +
                  'where a script exists.')
 
     parser.add_argument('--test-prefix', nargs=1,
             default=['test'],
             help='prefix of main testing scripts. ' +
-                 'In default, "test" is specified.')
+                 'default: test')
 
     parser.add_argument('--run-prefix', nargs=1,
             default=['run'],
             help='prefix of operation scripts. ' +
-                 'In default, "run" is specified.')
+                 'default: run')
 
     parser.add_argument('--before-prefix', nargs=1,
             default=['before'],
             help='prefix of preconditioning scripts ' +
                  'run before each test in the same directory. ' +
-                 'In default, "before" is specified.')
+                 'default: before')
 
     parser.add_argument('--after-prefix', nargs=1,
             default=['after'],
             help='prefix of postconditioning scripts ' +
                  'run after each test in the same directory. ' +
-                 'In default, "after" is specified.')
+                 'default: after')
 
     parser.add_argument('--before-all-prefix', nargs=1,
             default=['before-all'],
             help='prefix of preconditioning scripts ' +
                  'run once before all tests in the same directory. ' +
-                 'In default, "before-all" is specified.')
+                 'default: before-all')
 
     parser.add_argument('--after-all-prefix', nargs=1,
             default=['after-all'],
             help='prefix of postconditioning scripts ' +
                  'run once after all tests in the same directory. ' +
-                 'In default, "after-all" is specified.')
+                 'default: after-all')
 
     args = parser.parse_args()
 
