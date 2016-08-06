@@ -8,6 +8,7 @@ import argparse
 import copy
 import os
 import random
+import shutil
 import signal
 import stat
 import subprocess
@@ -16,6 +17,8 @@ import time
 
 # configurations
 ROOT_PATH = '.'
+OUTPUT_DIR = '/'
+
 COLOR_OUTPUT = False
 RANDOMIZE = False
 RAND_SEED = 0
@@ -39,7 +42,11 @@ def parse_args():
             'A directory structure framework and a runner for testing scripts.')
 
     parser.add_argument('PATH', nargs=1,
-            help='the root path of the testing scripts')
+            help='root path of the testing scripts')
+
+    parser.add_argument('-o', '--output', nargs=1,
+            help='directory the testing results are saved. ' +
+                 'default: /tmp/tt-runner')
 
     parser.add_argument('--color', action='store_true',
             help='color output')
@@ -48,7 +55,7 @@ def parse_args():
             help='randomize the order of running tests')
     parser.add_argument('--random-seed', nargs=1, type=int,
             default=[random.randint(0,65535)],
-            help='the random seed. ' +
+            help='random seed. ' +
                  'Ignored when the --randomize option is not set.')
 
     parser.add_argument('--no-chdir', action='store_true',
@@ -99,6 +106,14 @@ def parse_args():
 
     global ROOT_PATH
     ROOT_PATH = os.path.abspath(args.PATH[0])
+
+    global OUTPUT_DIR
+    if args.output != None:
+        OUTPUT_DIR = os.path.abspath(args.output[0])
+    else:
+        OUTPUT_DIR = '/tmp/tt-runner'
+        if os.path.lexists(OUTPUT_DIR):
+            shutil.rmtree(OUTPUT_DIR)
 
     global COLOR_OUTPUT
     COLOR_OUTPUT = args.color
@@ -194,6 +209,7 @@ class Operation():
         self.status = Operation.NOT_DONE
         self.elapsed = 0.0
         self.message = ''
+        self.id_num = 0 # set in create_plan
 
     def __repr__(self):
         return ('Operation(path=' + self.path +
@@ -203,6 +219,10 @@ class Operation():
 
     def __str__(self):
         return os.path.relpath(self.path, ROOT_PATH)
+
+    def logfile_name(self):
+        assert self.id_num > 0
+        return str(self.id_num) + '.' + str(self).replace(os.sep, '.') + '.out'
 
     def run(self):
         '''
@@ -236,8 +256,17 @@ class Operation():
         process = None
         try:
             process = subprocess.Popen([self.path],
-                    stdout=sys.stderr,
+                    stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT)
+            logfile = os.path.join(OUTPUT_DIR, self.logfile_name())
+
+            # write stdout and stderr of the operation
+            # to stderr and logfile
+            with process.stdout, open(logfile, 'wb') as f:
+                for line in iter(process.stdout.readline, b''):
+                    print >> sys.stderr, line,
+                    f.write(line)
+
             process.wait()
 
         except OSError as e:
@@ -351,6 +380,40 @@ def create_plan(root_node):
     def revsorted_nodes(in_nodes):
         return sorted(in_nodes, key=lambda node: node.path, reverse=True)
 
+    def get_before_all_ops(node, depends):
+        my_depends = copy.copy(depends)
+        before_all_ops = []
+        for before_all_node in sorted_nodes(node.before_alls):
+            ops = visit(before_all_node, my_depends)
+            before_all_ops.extend(ops)
+            # Depends previous before-all operations.
+            my_depends.extend(ops)
+        return before_all_ops
+
+    def get_after_all_ops(node, depends):
+        after_all_ops= []
+        for after_all_node in revsorted_nodes(node.after_alls):
+            ops = visit(after_all_node, depends)
+            after_all_ops.extend(ops)
+        return after_all_ops
+
+    def get_before_ops(node, depends):
+        my_depends = copy.copy(depends)
+        before_ops = []
+        for before_node in sorted_nodes(node.befores):
+            ops = visit(before_node, my_depends)
+            before_ops.extend(ops)
+            # Depends previous before operations.
+            my_depends.extend(ops)
+        return before_ops
+
+    def get_after_ops(node, depends):
+        after_ops= []
+        for after_node in revsorted_nodes(node.afters):
+            ops = visit(after_node, depends)
+            after_ops.extend(ops)
+        return after_ops
+
     def visit(node, depends):
         '''
         Visit nodes recursively and return the list of operations
@@ -362,99 +425,108 @@ def create_plan(root_node):
             op = Operation(node.path, depends)
             return [op]
 
-        before_all_ops = []
-        for before_all_node in sorted_nodes(node.before_alls):
-            ops = visit(before_all_node, depends)
-            before_all_ops.extend(ops)
-
-        after_all_ops= []
-        for after_all_node in revsorted_nodes(node.after_alls):
-            ops = visit(after_all_node, depends)
-            after_all_ops.extend(ops)
-
-        # Operations depended by other operations.
-        my_depends = copy.copy(depends)
-        # Before, after and run, test operations
-        # depends on before-all operations.
-        my_depends.extend(before_all_ops)
-
-        before_ops = []
-        for before_node in sorted_nodes(node.befores):
-            ops = visit(before_node, my_depends)
-            before_ops.extend(ops)
-
-        after_ops= []
-        for after_node in revsorted_nodes(node.afters):
-            ops = visit(after_node, my_depends)
-            after_ops.extend(ops)
-
-        # Run-operations depends on before-all and before operations.
-        my_depends.extend(before_ops)
-
         # Operations in the nodes under this node.
-        # It includes all of before-all, before, run, after, after-all.
         ops_under_node = []
 
+        # before-all nodes
+        before_all_ops = get_before_all_ops(node, depends)
         ops_under_node.extend(before_all_ops)
+        my_depends_out = copy.copy(depends)
+        my_depends_out.extend(before_all_ops)
 
+        # note: temporary execcute before-operations and after-operations
+        # respectively before and after run-operations. In the future, we
+        # might prohibit that a node contains both of run-operations and
+        # other operations.
         if len(node.runs) > 0:
+            # before nodes
+            before_ops = get_before_ops(node, my_depends_out)
             ops_under_node.extend(before_ops)
+            my_depends_in = copy.copy(my_depends_out)
+            my_depends_in.extend(before_ops)
+
+            # run nodes
             for run_node in sorted_nodes(node.runs):
-                run_ops = visit(run_node, my_depends)
+                run_ops = visit(run_node, my_depends_in)
                 ops_under_node.extend(run_ops)
+                my_depends_in.extend(run_ops)
+
+            # after nodes
+            after_ops = get_after_ops(node, my_depends_out)
             ops_under_node.extend(after_ops)
 
         for test_node in randomize_nodes(node.tests):
+            # before nodes
+            before_ops = get_before_ops(node, my_depends_out)
             ops_under_node.extend(before_ops)
+            my_depends_in = copy.copy(my_depends_out)
+            my_depends_in.extend(before_ops)
 
-            run_ops = visit(test_node, my_depends)
-            ops_under_node.extend(run_ops)
+            # test node
+            test_ops = visit(test_node, my_depends_in)
+            ops_under_node.extend(test_ops)
 
+            # after nodes
+            after_ops = get_after_ops(node, my_depends_out)
             ops_under_node.extend(after_ops)
 
+        # after-all nades
+        after_all_ops = get_after_all_ops(node, depends)
         ops_under_node.extend(after_all_ops)
 
         return ops_under_node
 
     depends = []
-    return visit(root_node, depends)
+    operations = visit(root_node, depends)
+    id_num = 1
+    for op in operations:
+        op.id_num = id_num
+        id_num += 1
+    return operations
 
 def run_ops(operations):
 
-    num_ops = len(operations)
-    print color(GREEN, '1..' + str(num_ops))
+    tapfile = os.path.join(OUTPUT_DIR, 'result.txt')
+    with open(tapfile, 'w') as f:
 
-    for i in range(1, num_ops + 1):
-        op = operations[i - 1]
-        op.run()
+        num_ops = len(operations)
+        line = '1..{0:d}'.format(num_ops)
+        print color(GREEN, line)
+        f.write(line + '\n')
 
-        # Format message
-        message = ''
-        if op.message != '':
-            message = '\n' + '\n'.join(
-                  ['# ' + line for line in op.message.splitlines()])
+        for i in range(1, num_ops + 1):
+            op = operations[i - 1]
+            op.run()
 
-        if op.status == Operation.SUCCEEDED:
-            print color(GREEN,
-                'ok {0:d} {1:s} # {2:.1f} sec'.format(i, op, op.elapsed) +
-                message)
+            # Format message
+            message = ''
+            if op.message != '':
+                message = '\n' + '\n'.join(
+                      ['# ' + line for line in op.message.splitlines()])
 
-        elif op.status == Operation.FAILED:
-            print color(RED,
-                'not ok {0:d} {1:s} # {2:.1f} sec'.format(i, op, op.elapsed) +
-                message)
+            if op.status == Operation.SUCCEEDED:
+                line = 'ok {0:d} {1:s} # {2:.0f} sec{3:s}'.format(
+                        i, op, op.elapsed, message)
+                print color(GREEN, line)
+                f.write(line + '\n')
 
-        elif op.status == Operation.SKIPPED:
-            print color(YELLOW,
-                'ok ' + str(i) + ' ' + str(op) + ' # SKIP' +
-                message)
+            elif op.status == Operation.FAILED:
+                line = 'not ok {0:d} {1:s} # {2:.0f} sec{3:s}'.format(
+                        i, op, op.elapsed, message)
+                print color(RED, line)
+                f.write(line + '\n')
 
-        else:
-            assert False
+            elif op.status == Operation.SKIPPED:
+                line = 'ok {0:d} {1:s} # SKIP{2:s}'.format(i, op, message)
+                print color(YELLOW, line)
+                f.write(line + '\n')
 
-        if STOP_ON_FAILURE and op.status == Operation.FAILED:
-            global SKIP_ALL
-            SKIP_ALL = True
+            else:
+                assert False
+
+            if STOP_ON_FAILURE and op.status == Operation.FAILED:
+                global SKIP_ALL
+                SKIP_ALL = True
 
 def summarize(operations):
     '''
@@ -472,11 +544,11 @@ def summarize(operations):
     elapsed = sum([ o.elapsed for o in operations ])
 
     message = ('\n' +
-               '# tests = ' + str(num_test) + '\n' +
+               '# operations = ' + str(num_test) + '\n' +
                '# succeeded = ' + str(num_sunceeded) + '\n' +
                '# failed = ' + str(num_failed) + '\n' +
                '# skipped = ' + str(num_skipped) + '\n' +
-               '# time = {0:.1f} sec'.format(elapsed))
+               '# time-taken = {0:.0f} [sec]'.format(elapsed))
 
     if RANDOMIZE:
         message += '\n# random-seed = {0:d}'.format(RAND_SEED)
@@ -490,6 +562,7 @@ def summarize(operations):
 
 if __name__ == '__main__':
     parse_args()
+    os.makedirs(OUTPUT_DIR)
     root_node = create_tree(ROOT_PATH)
     operations = create_plan(root_node)
     run_ops(operations)
