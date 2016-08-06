@@ -19,6 +19,7 @@ ROOT_PATH = '.'
 COLOR_OUTPUT = False
 RANDOMIZE = False
 RAND_SEED = 0
+CHDIR = True
 
 TEST_PREFIXES = []
 RUN_PREFIXES = []
@@ -47,6 +48,10 @@ def parse_args():
             default=[random.randint(0,65535)],
             help='the random seed. ' +
                  'Ignored when the --randomize option is not set.')
+
+    parser.add_argument('--no-chdir', action='store_true',
+            help='do not change the workind directory to the directory ' +
+                 'where a script exists.')
 
     parser.add_argument('--test-prefix', nargs=1,
             default=['test'],
@@ -85,7 +90,7 @@ def parse_args():
     args = parser.parse_args()
 
     global ROOT_PATH
-    ROOT_PATH = args.PATH[0]
+    ROOT_PATH = os.path.abspath(args.PATH[0])
 
     global COLOR_OUTPUT
     COLOR_OUTPUT = args.color
@@ -95,6 +100,9 @@ def parse_args():
     RANDOMIZE = args.randomize
     RAND_SEED = args.random_seed[0]
     random.seed(RAND_SEED)
+
+    global CHDIR
+    CHDIR = not args.no_chdir
 
     global TEST_PREFIXES
     global RUN_PREFIXES
@@ -116,7 +124,7 @@ class Node():
 
     def __init__(self, path, is_executable=False):
         # Path to file.
-        self.path = path
+        self.path = os.path.abspath(path)
 
         # Child nodes.
         self.tests = []
@@ -200,6 +208,11 @@ class Operation():
 
         print >> sys.stderr, color(BLUE, '')
         print >> sys.stderr, color(BLUE, '# run ' + str(self))
+
+        if CHDIR:
+            # Change the working directory to the directory where
+            # the script exists.
+            os.chdir(os.path.dirname(self.path))
 
         start = time.time()
 
