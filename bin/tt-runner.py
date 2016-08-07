@@ -42,7 +42,7 @@ def parse_args():
             'A directory structure framework and a runner for testing scripts.')
 
     parser.add_argument('PATH', nargs=1,
-            help='root path of the testing scripts')
+            help='root path of the test suite')
 
     parser.add_argument('-o', '--output', nargs=1,
             help='directory the testing results are saved. ' +
@@ -68,37 +68,39 @@ def parse_args():
     parser.add_argument('--skip-all', action='store_true',
             help='skip all operations.')
 
-    parser.add_argument('--test-prefix', nargs=1,
+    prefix_group = parser.add_argument_group('prefixes')
+
+    prefix_group.add_argument('--test-prefix', nargs=1,
             default=['test'],
             help='prefix of main testing scripts. ' +
                  'default: test')
 
-    parser.add_argument('--run-prefix', nargs=1,
+    prefix_group.add_argument('--run-prefix', nargs=1,
             default=['run'],
             help='prefix of operation scripts. ' +
                  'default: run')
 
-    parser.add_argument('--before-prefix', nargs=1,
+    prefix_group.add_argument('--before-prefix', nargs=1,
             default=['before'],
-            help='prefix of preconditioning scripts ' +
+            help='prefix of preconditioning scripts. ' +
                  'run before each test in the same directory. ' +
                  'default: before')
 
-    parser.add_argument('--after-prefix', nargs=1,
+    prefix_group.add_argument('--after-prefix', nargs=1,
             default=['after'],
-            help='prefix of postconditioning scripts ' +
+            help='prefix of postconditioning scripts. ' +
                  'run after each test in the same directory. ' +
                  'default: after')
 
-    parser.add_argument('--before-all-prefix', nargs=1,
+    prefix_group.add_argument('--before-all-prefix', nargs=1,
             default=['before-all'],
-            help='prefix of preconditioning scripts ' +
+            help='prefix of preconditioning scripts. ' +
                  'run once before all tests in the same directory. ' +
                  'default: before-all')
 
-    parser.add_argument('--after-all-prefix', nargs=1,
+    prefix_group.add_argument('--after-all-prefix', nargs=1,
             default=['after-all'],
-            help='prefix of postconditioning scripts ' +
+            help='prefix of postconditioning scripts. ' +
                  'run once after all tests in the same directory. ' +
                  'default: after-all')
 
