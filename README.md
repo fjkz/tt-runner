@@ -73,9 +73,7 @@ Each node can have child nodes as directory entries. That is, the test suite has
 
 Test nodes are main test cases.
 
-Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr.
-
-For repeatablity, the random seed can be assigned with the `--random-seed` option.
+Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr. For repeatablity, we can assign a random seed.
 
 ### Run node
 

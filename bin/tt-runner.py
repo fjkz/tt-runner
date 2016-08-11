@@ -51,12 +51,9 @@ def parse_args():
     parser.add_argument('--color', action='store_true',
             help='color output')
 
-    parser.add_argument('--randomize', action='store_true',
+    parser.add_argument('--randomize', nargs='?', metavar='SEED',
+            type=int, default=None, const=random.randint(0,65535),
             help='randomize the order of running tests')
-    parser.add_argument('--random-seed', nargs=1, type=int,
-            default=[random.randint(0,65535)],
-            help='random seed. ' +
-                 'Ignored when the --randomize option is not set.')
 
     parser.add_argument('--no-chdir', action='store_true',
             help='do not change the working directory to the directory ' +
@@ -122,9 +119,13 @@ def parse_args():
 
     global RANDOMIZE
     global RAND_SEED
-    RANDOMIZE = args.randomize
-    RAND_SEED = args.random_seed[0]
-    random.seed(RAND_SEED)
+    if args.randomize:
+        RANDOMIZE = True
+        RAND_SEED = args.randomize
+        random.seed(RAND_SEED)
+    else:
+        RANDOMIZE = False
+        RAND_SEED = None
 
     global CHDIR
     CHDIR = not args.no_chdir
