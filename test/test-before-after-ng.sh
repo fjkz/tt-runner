@@ -10,7 +10,7 @@ create_failing_test ${WORKDIR}/before.sh
 create_succeeding_test ${WORKDIR}/after.sh
 
 set +e
-OUT=$(tt-runner.py ${WORKDIR})
+OUT=$(tt-runner ${WORKDIR})
 set -e
 
 [[ ${OUT} == "1..6

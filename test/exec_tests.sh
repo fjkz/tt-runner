@@ -7,4 +7,4 @@ cd "${MYDIR}"
 export PATH="${MYDIR}/../bin:${PATH}"
 export WORKDIR="/tmp/tt-runner-tests"
 rm -rf result
-tt-runner.py ./ -o result --color --randomize 2>/dev/null
+tt-runner ./ -o result --color --randomize 2>/dev/null

@@ -23,7 +23,7 @@ sample/test-simple
 We can run them with assigning the root path of the test suite. The result is printed on the console.
 
 ```
-$ ./bin/tt-runner.py  sample/test-simple
+$ ./bin/tt-runner  sample/test-simple
 1..2
 
 # run test_ok.sh
@@ -97,7 +97,7 @@ sample/test-before-after
 ├── test1.sh
 └── test2.sh
 
-$ ./bin/tt-runner.py sample/test-before-after 2>/dev/null
+$ ./bin/tt-runner sample/test-before-after 2>/dev/null
 1..10
 ok 1 before1.sh # 0.0 sec
 ok 2 before2.sh # 0.0 sec
@@ -114,7 +114,7 @@ ok 10 after1.sh # 0.0 sec
 Unlike JUnit, the before or after scripts are considered as separated operations from test cases. However, they are not independent. When a before operation fails, the following test cases are skipped.
 
 ```
-$ ./bin/tt-runner.py sample/test-skip 2>/dev/null
+$ ./bin/tt-runner sample/test-skip 2>/dev/null
 1..3
 not ok 1 before.sh # 0.0 sec
 ok 2 test.sh # SKIP
@@ -136,7 +136,7 @@ sample/test-before-after-all
 ├── test1.sh
 └── test2.sh
 
-$ ./bin/tt-runner.py sample/test-before-after-all 2>/dev/null
+$ ./bin/tt-runner sample/test-before-after-all 2>/dev/null
 1..6
 ok 1 before-all1.sh # 0.0 sec
 ok 2 before-all2.sh # 0.0 sec

@@ -7,7 +7,7 @@ set -eux
 create_failing_test ${WORKDIR}/test1.sh
 
 set +e
-OUT=$(tt-runner.py ${WORKDIR})
+OUT=$(tt-runner ${WORKDIR})
 if [[ $? == 0 ]]; then
   exit 1
 fi

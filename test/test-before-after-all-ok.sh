@@ -9,7 +9,7 @@ create_succeeding_test ${WORKDIR}/test2.sh
 create_succeeding_test ${WORKDIR}/before-all.sh
 create_succeeding_test ${WORKDIR}/after-all.sh
 
-OUT=$(tt-runner.py ${WORKDIR})
+OUT=$(tt-runner ${WORKDIR})
 
 [[ ${OUT} == "1..4
 ok 1 before-all.sh # 0 sec

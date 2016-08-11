@@ -12,7 +12,7 @@ create_failing_test ${WORKDIR}/before-all.sh
 create_succeeding_test ${WORKDIR}/after-all.sh
 
 set +e
-OUT=$(tt-runner.py ${WORKDIR})
+OUT=$(tt-runner ${WORKDIR})
 set -e
 
 [[ ${OUT} == "1..4
