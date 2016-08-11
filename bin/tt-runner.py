@@ -371,7 +371,7 @@ def create_plan(root_node):
 
     def randomize_nodes(in_nodes):
         if not RANDOMIZE:
-            return in_nodes
+            return sorted_nodes(in_nodes)
         out_nodes = copy.copy(in_nodes)
         random.shuffle(out_nodes)
         return out_nodes
