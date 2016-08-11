@@ -70,35 +70,35 @@ def parse_args():
 
     prefix_group = parser.add_argument_group('prefixes')
 
-    prefix_group.add_argument('--test-prefix', nargs=1,
+    prefix_group.add_argument('--test-prefix', nargs=1, metavar='PREFIX',
             default=['test'],
             help='prefix of main testing scripts. ' +
                  'default: test')
 
-    prefix_group.add_argument('--run-prefix', nargs=1,
+    prefix_group.add_argument('--run-prefix', nargs=1, metavar='PREFIX',
             default=['run'],
             help='prefix of operation scripts. ' +
                  'default: run')
 
-    prefix_group.add_argument('--before-prefix', nargs=1,
+    prefix_group.add_argument('--before-prefix', nargs=1, metavar='PREFIX',
             default=['before'],
             help='prefix of preconditioning scripts. ' +
                  'run before each test in the same directory. ' +
                  'default: before')
 
-    prefix_group.add_argument('--after-prefix', nargs=1,
+    prefix_group.add_argument('--after-prefix', nargs=1, metavar='PREFIX',
             default=['after'],
             help='prefix of postconditioning scripts. ' +
                  'run after each test in the same directory. ' +
                  'default: after')
 
-    prefix_group.add_argument('--before-all-prefix', nargs=1,
+    prefix_group.add_argument('--before-all-prefix', nargs=1, metavar='PREFIX',
             default=['before-all'],
             help='prefix of preconditioning scripts. ' +
                  'run once before all tests in the same directory. ' +
                  'default: before-all')
 
-    prefix_group.add_argument('--after-all-prefix', nargs=1,
+    prefix_group.add_argument('--after-all-prefix', nargs=1, metavar='PREFIX',
             default=['after-all'],
             help='prefix of postconditioning scripts. ' +
                  'run once after all tests in the same directory. ' +
