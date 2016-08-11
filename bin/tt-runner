@@ -487,7 +487,20 @@ def create_plan(root_node):
         id_num += 1
     return operations
 
+def set_env_vars():
+    '''
+    Set environment variables.
+    They are used in testing scripts to be executed.
+    '''
+
+    os.environ["TT_RUNNER_EXEC_DIR" ] = os.getcwd()
+    os.environ["TT_RUNNER_ROOT_DIR" ] = ROOT_PATH
+    os.environ["TT_RUNNER_OUTPUT_DIR"] = OUTPUT_DIR
+
 def run_ops(operations):
+    '''
+    Run operations.
+    '''
 
     tapfile = os.path.join(OUTPUT_DIR, 'result.txt')
     with open(tapfile, 'w') as f:
@@ -497,6 +510,7 @@ def run_ops(operations):
         print color(GREEN, line)
         f.write(line + '\n')
 
+        # For each operations
         for i in range(1, num_ops + 1):
             op = operations[i - 1]
             op.run()
@@ -568,6 +582,7 @@ if __name__ == '__main__':
     os.makedirs(OUTPUT_DIR)
     root_node = create_tree(ROOT_PATH)
     operations = create_plan(root_node)
+    set_env_vars()
     run_ops(operations)
     is_success = summarize(operations)
     if not is_success:
