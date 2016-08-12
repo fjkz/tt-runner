@@ -25,6 +25,7 @@ RANDOMIZE = False
 RAND_SEED = 0
 CHDIR = True
 STOP_ON_FAILURE = False
+SKIP_OPS = []
 SKIP_ALL = False # can be changed in running
 
 TEST_REGEX = None
@@ -63,8 +64,13 @@ def parse_args():
     parser.add_argument('--stop-on-failure', action='store_true',
             help='skip remaining operations if an operation fails')
 
-    parser.add_argument('--skip-all', action='store_true',
-            help='skip all operations.')
+    skip_group = parser.add_mutually_exclusive_group()
+    skip_group.add_argument('--skip', nargs='+', metavar='N',
+            type=int, default=[],
+            help='skipped operations')
+
+    skip_group.add_argument('--skip-all', action='store_true',
+            help='skip all operations')
 
     prefix_group = parser.add_argument_group('regular expressions')
 
@@ -138,8 +144,10 @@ def parse_args():
     CHDIR = not args.no_chdir
 
     global STOP_ON_FAILURE
+    global SKIP_OPS
     global SKIP_ALL
     STOP_ON_FAILURE = args.stop_on_failure
+    SKIP_OPS = args.skip
     SKIP_ALL = args.skip_all
 
     global TEST_REGEX
@@ -241,6 +249,10 @@ class Operation():
         '''
 
         if SKIP_ALL:
+            self.status = Operation.SKIPPED
+            return
+
+        if self.id_num in SKIP_OPS:
             self.status = Operation.SKIPPED
             return
 
