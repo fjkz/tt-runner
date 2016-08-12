@@ -153,7 +153,7 @@ class Node():
     A node of the test script tree.
     '''
 
-    def __init__(self, path, is_executable=False):
+    def __init__(self, path, is_leaf=False):
         # Path to file.
         self.path = os.path.abspath(path)
 
@@ -165,8 +165,8 @@ class Node():
         self.before_alls = []
         self.after_alls = []
 
-        # True if the node is a executable file.
-        self.is_executable = is_executable
+        # True if the node is a file.
+        self.is_leaf = is_leaf
 
     def __repr__(self):
         return 'Node(' + self.path + ')'
@@ -181,7 +181,7 @@ class Node():
             len(self.afters) == 0 and
             len(self.before_alls) == 0 and
             len(self.after_alls) == 0 and
-            self.is_executable == False):
+            self.is_leaf == False):
             return True
         else:
             return False
@@ -246,6 +246,12 @@ class Operation():
                                 ' did not succeed.')
                 return
 
+        # Skip if the file is not executable.
+        if not os.access(self.path, os.R_OK | os.X_OK):
+            self.status = Operation.SKIPPED
+            self.message = str(self) + ' is not executable.'
+            return
+
         print >> sys.stderr, color(BLUE, '')
         print >> sys.stderr, color(BLUE, '# run ' + str(self))
 
@@ -298,19 +304,14 @@ def create_tree(path):
     '''
 
     def get_child_node(child_path):
-        if os.path.isdir(child_path):
+        if os.path.isfile(child_path):
+            return Node(child_path, is_leaf=True)
+        else:
             child_node = create_tree(child_path)
             if child_node.is_empty():
                 return None
             else:
                 return child_node
-        else:
-            if os.access(child_path, os.R_OK | os.X_OK):
-                return Node(child_path, is_executable=True)
-            else:
-                print >> sys.stderr, color(BLUE,
-                        '# ' + child_path + ' is not executable.')
-                return None
 
     def has_prefix(string, prefixes):
         for prefix in prefixes:
@@ -424,7 +425,7 @@ def create_plan(root_node):
         '''
 
         # Tree is end.
-        if node.is_executable:
+        if node.is_leaf:
             op = Operation(node.path, depends)
             return [op]
 
