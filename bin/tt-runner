@@ -8,6 +8,7 @@ import argparse
 import copy
 import os
 import random
+import re
 import shutil
 import signal
 import stat
@@ -26,12 +27,12 @@ CHDIR = True
 STOP_ON_FAILURE = False
 SKIP_ALL = False # can be changed in running
 
-TEST_PREFIXES = []
-RUN_PREFIXES = []
-BEFORE_PREFIXES = []
-AFTER_PREFIXES = []
-BEFORE_ALL_PREFIXES = []
-AFTER_ALL_PREFIXES = []
+TEST_REGEX = None
+RUN_REGEX = None
+BEFORE_REGEX = None
+AFTER_REGEX = None
+BEFORE_ALL_REGEX = None
+AFTER_ALL_REGEX = None
 
 def parse_args():
     '''
@@ -65,39 +66,45 @@ def parse_args():
     parser.add_argument('--skip-all', action='store_true',
             help='skip all operations.')
 
-    prefix_group = parser.add_argument_group('prefixes')
+    prefix_group = parser.add_argument_group('regular expressions')
 
-    prefix_group.add_argument('--test-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--test-regex', nargs=1, metavar='RE',
             default=['test'],
-            help='prefix of main testing scripts. ' +
+            help='regular expression matching with ' +
+                 'main testing scripts\' names. ' +
                  'default: test')
 
-    prefix_group.add_argument('--run-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--run-regex', nargs=1, metavar='RE',
             default=['run'],
-            help='prefix of operation scripts. ' +
+            help='regular expression matching with ' +
+                 'operation scripts\' names. ' +
                  'default: run')
 
-    prefix_group.add_argument('--before-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--before-regex', nargs=1, metavar='RE',
             default=['before'],
-            help='prefix of preconditioning scripts. ' +
+            help='regular expression matching with ' +
+                 'preconditioning scripts\' names. ' +
                  'run before each test in the same directory. ' +
                  'default: before')
 
-    prefix_group.add_argument('--after-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--after-regex', nargs=1, metavar='RE',
             default=['after'],
-            help='prefix of postconditioning scripts. ' +
+            help='regular expression matching with ' +
+                 'postconditioning scripts\' names. ' +
                  'run after each test in the same directory. ' +
                  'default: after')
 
-    prefix_group.add_argument('--before-all-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--before-all-regex', nargs=1, metavar='RE',
             default=['before-all'],
-            help='prefix of preconditioning scripts. ' +
+            help='regular expression matching with ' +
+                 'preconditioning scripts\' name. ' +
                  'run once before all tests in the same directory. ' +
                  'default: before-all')
 
-    prefix_group.add_argument('--after-all-prefix', nargs=1, metavar='PREFIX',
+    prefix_group.add_argument('--after-all-regex', nargs=1, metavar='RE',
             default=['after-all'],
-            help='prefix of postconditioning scripts. ' +
+            help='regular expression matching with ' +
+                 'postconditioning scripts\' name. ' +
                  'run once after all tests in the same directory. ' +
                  'default: after-all')
 
@@ -135,18 +142,18 @@ def parse_args():
     STOP_ON_FAILURE = args.stop_on_failure
     SKIP_ALL = args.skip_all
 
-    global TEST_PREFIXES
-    global RUN_PREFIXES
-    global BEFORE_PREFIXES
-    global AFTER_PREFIXES
-    global BEFORE_ALL_PREFIXES
-    global AFTER_ALL_PREFIXES
-    TEST_PREFIXES = args.test_prefix
-    RUN_PREFIXES = args.run_prefix
-    BEFORE_PREFIXES = args.before_prefix
-    AFTER_PREFIXES = args.after_prefix
-    BEFORE_ALL_PREFIXES = args.before_all_prefix
-    AFTER_ALL_PREFIXES = args.after_all_prefix
+    global TEST_REGEX
+    global RUN_REGEX
+    global BEFORE_REGEX
+    global AFTER_REGEX
+    global BEFORE_ALL_REGEX
+    global AFTER_ALL_REGEX
+    TEST_REGEX = re.compile(args.test_regex[0])
+    RUN_REGEX = re.compile(args.run_regex[0])
+    BEFORE_REGEX = re.compile(args.before_regex[0])
+    AFTER_REGEX = re.compile(args.after_regex[0])
+    BEFORE_ALL_REGEX = re.compile(args.before_all_regex[0])
+    AFTER_ALL_REGEX = re.compile(args.after_all_regex[0])
 
 class Node():
     '''
@@ -313,12 +320,6 @@ def create_tree(path):
             else:
                 return child_node
 
-    def has_prefix(string, prefixes):
-        for prefix in prefixes:
-            if string.startswith(prefix):
-                return True
-        return False
-
     node = Node(path)
     for entry in os.listdir(path):
         child_path = os.path.join(path, entry)
@@ -326,13 +327,13 @@ def create_tree(path):
         # If the directory entry has one of prefixes,
         # add it to the child nodes.
 
-        if has_prefix(entry, TEST_PREFIXES):
+        if TEST_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
             node.tests.append(child_node)
 
-        elif has_prefix(entry, RUN_PREFIXES):
+        elif RUN_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
@@ -340,25 +341,25 @@ def create_tree(path):
 
         # Before-all and after-all prefixes have higher priority
         # than before and after prefixes.
-        elif has_prefix(entry, BEFORE_ALL_PREFIXES):
+        elif BEFORE_ALL_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
             node.before_alls.append(child_node)
 
-        elif has_prefix(entry, AFTER_ALL_PREFIXES):
+        elif AFTER_ALL_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
             node.after_alls.append(child_node)
 
-        elif has_prefix(entry, BEFORE_PREFIXES):
+        elif BEFORE_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
             node.befores.append(child_node)
 
-        elif has_prefix(entry, AFTER_PREFIXES):
+        elif AFTER_REGEX.match(entry):
             child_node = get_child_node(child_path)
             if child_node == None:
                 continue
