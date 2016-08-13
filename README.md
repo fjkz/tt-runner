@@ -1,5 +1,7 @@
 # TT-Runner: a testing scripts runner
 
+[![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
+
 TT-Runner is a directory structure framework for testing scripts. It can organize legacy testing scripts into a tree, and it can run them as like using modern testing frameworks.
 
 ## Usage
