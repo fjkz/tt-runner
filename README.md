@@ -158,7 +158,7 @@ ok 5 after-all2.sh
 ok 6 after-all1.sh
 ```
 
-Preconditioning or postconditioning operations should be idempotent. We can check idempotency with `--multiply-pre-post` option. With this option, preconditioning or postconditioning operations are run twice.
+Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. With this option preconditioning operations are run twice. Note that postconditiong operations do not need to be idempotent because they should expect preconditions are satisfied.
 
 ## Requirement
 

@@ -25,7 +25,7 @@ CHDIR = True
 
 RANDOMIZE = False
 RAND_SEED = 0
-MULTI_PRE_POST = False
+MULTIPLY_PRE = False
 
 STOP_ON_FAILURE = False
 ONLY_OPS = []
@@ -69,8 +69,9 @@ def parse_args():
             help='randomize the order of running tests. ' +
                  'enhance independency among test cases')
 
-    quality_group.add_argument('--multiply-pre-post', action='store_true',
-            help='run preconditioning and postconditioning scripts twice. ' +
+    quality_group.add_argument('--multiply-preconditioning',
+            action='store_true',
+            help='run preconditioning scripts twice. ' +
                  'enhance idempotency of them')
 
     debug_group = parser.add_argument_group('options for testing of tests')
@@ -161,8 +162,8 @@ def parse_args():
         RANDOMIZE = False
         RAND_SEED = None
 
-    global MULTI_PRE_POST
-    MULTI_PRE_POST = args.multiply_pre_post
+    global MULTIPLY_PRE
+    MULTIPLY_PRE = args.multiply_preconditioning
 
     global STOP_ON_FAILURE
     global ONLY_OPS
@@ -478,8 +479,8 @@ def create_plan(root_node):
         my_depends_out = copy.copy(depends)
         my_depends_out.extend(before_all_ops)
 
-        if MULTI_PRE_POST:
-            before_all_ops2 = get_before_all_ops(node, depends)
+        if MULTIPLY_PRE:
+            before_all_ops2 = get_before_all_ops(node, my_depends_out)
             ops_under_node.extend(before_all_ops2)
             my_depends_out.extend(before_all_ops2)
 
@@ -504,12 +505,19 @@ def create_plan(root_node):
             after_ops = get_after_ops(node, my_depends_out)
             ops_under_node.extend(after_ops)
 
+        first_test = True
         for test_node in randomize_nodes(node.tests):
             # before nodes
             before_ops = get_before_ops(node, my_depends_out)
             ops_under_node.extend(before_ops)
             my_depends_in = copy.copy(my_depends_out)
             my_depends_in.extend(before_ops)
+
+            if MULTIPLY_PRE and first_test:
+                before_ops2 = get_before_ops(node, my_depends_in)
+                ops_under_node.extend(before_ops2)
+                my_depends_in.extend(before_ops2)
+                first_test = False
 
             # test node
             test_ops = visit(test_node, my_depends_in)
@@ -518,16 +526,6 @@ def create_plan(root_node):
             # after nodes
             after_ops = get_after_ops(node, my_depends_out)
             ops_under_node.extend(after_ops)
-
-        if MULTI_PRE_POST:
-            for _ in range(2):
-                before_ops = get_before_ops(node, my_depends_out)
-                ops_under_node.extend(before_ops)
-            for _ in range(2):
-                after_ops = get_after_ops(node, my_depends_out)
-                ops_under_node.extend(after_ops)
-            after_all_ops2 = get_after_all_ops(node, depends)
-            ops_under_node.extend(after_all_ops2)
 
         # after-all nades
         after_all_ops = get_after_all_ops(node, depends)
