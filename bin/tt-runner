@@ -62,20 +62,24 @@ def parse_args():
             help='do not change the working directory to the directory ' +
                  'where a script exists.')
 
-    parser.add_argument('--stop-on-failure', action='store_true',
-            help='skip remaining operations if an operation fails')
+    debug_group = parser.add_argument_group('options for testing of tests')
 
-    skip_group = parser.add_mutually_exclusive_group()
+    debug_group.add_argument('--stop-on-failure', action='store_true',
+            help='skip remaining operations if an operation fails. ' +
+                 'do not run postconditioning operations.')
+
+    skip_group = debug_group.add_mutually_exclusive_group()
     skip_group.add_argument('--only', nargs='+', metavar='N',
             type=int, default=[],
-            help='run only specified operations')
+            help='run only specified operations. ' +
+                 'do not run preconditioning or postconditioning operations')
     skip_group.add_argument('--skip', nargs='+', metavar='N',
             type=int, default=[],
             help='skip specified operations')
     skip_group.add_argument('--skip-all', action='store_true',
             help='skip all operations')
 
-    prefix_group = parser.add_argument_group('regular expressions')
+    prefix_group = parser.add_argument_group('options for specifying node type')
 
     prefix_group.add_argument('--test-regex', nargs=1, metavar='RE',
             default=['test'],
