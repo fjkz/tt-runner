@@ -28,11 +28,11 @@ $ ./bin/tt-runner  sample/test-simple
 
 # run test_ok.sh
 test_ok.sh's output
-ok 1 test_ok.sh # 0.0 sec
+ok 1 test_ok.sh
 
 # run test_ng.sh
 test_ng's output
-not ok 2 test_ng.sh # 0.0 sec
+not ok 2 test_ng.sh
 
 # tests = 2
 # succeeded = 1
@@ -50,8 +50,8 @@ The output in the stdout is obeying Test Anything Protocol (TAP). We can integra
 ```
 $ ./bin/tree-test-runner.py sample/test-simple 2>/dev/null
 1..2
-ok 1 test_ok.sh # 0.0 sec
-not ok 2 test_ng.sh # 0.0 sec
+ok 1 test_ok.sh
+not ok 2 test_ng.sh
 ```
 
 ### Directory structure
@@ -99,16 +99,16 @@ sample/test-before-after
 
 $ ./bin/tt-runner sample/test-before-after 2>/dev/null
 1..10
-ok 1 before1.sh # 0.0 sec
-ok 2 before2.sh # 0.0 sec
-ok 3 test1.sh # 0.0 sec
-ok 4 after2.sh # 0.0 sec
-ok 5 after1.sh # 0.0 sec
-ok 6 before1.sh # 0.0 sec
-ok 7 before2.sh # 0.0 sec
-ok 8 test2.sh # 0.0 sec
-ok 9 after2.sh # 0.0 sec
-ok 10 after1.sh # 0.0 sec
+ok 1 before1.sh
+ok 2 before2.sh
+ok 3 test1.sh
+ok 4 after2.sh
+ok 5 after1.sh
+ok 6 before1.sh
+ok 7 before2.sh
+ok 8 test2.sh
+ok 9 after2.sh
+ok 10 after1.sh
 ```
 
 Unlike JUnit, the before or after scripts are considered as separated operations from test cases. However, they are not independent. When a before operation fails, the following test cases are skipped.
@@ -116,10 +116,10 @@ Unlike JUnit, the before or after scripts are considered as separated operations
 ```
 $ ./bin/tt-runner sample/test-skip 2>/dev/null
 1..3
-not ok 1 before.sh # 0.0 sec
+not ok 1 before.sh
 ok 2 test.sh # SKIP
 # skipped because before.sh did not succeed.
-ok 3 after.sh # 0.0 sec
+ok 3 after.sh
 ```
 
 ### Before-all / after-all node
@@ -138,12 +138,12 @@ sample/test-before-after-all
 
 $ ./bin/tt-runner sample/test-before-after-all 2>/dev/null
 1..6
-ok 1 before-all1.sh # 0.0 sec
-ok 2 before-all2.sh # 0.0 sec
-ok 3 test1.sh # 0.0 sec
-ok 4 test2.sh # 0.0 sec
-ok 5 after-all2.sh # 0.0 sec
-ok 6 after-all1.sh # 0.0 sec
+ok 1 before-all1.sh
+ok 2 before-all2.sh
+ok 3 test1.sh
+ok 4 test2.sh
+ok 5 after-all2.sh
+ok 6 after-all1.sh
 ```
 
 ## Requirement

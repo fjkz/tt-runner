@@ -16,9 +16,9 @@ OUT=$(tt-runner ${WORKDIR})
 set -e
 
 [[ ${OUT} == "1..4
-not ok 1 before-all.sh # 0 sec
+not ok 1 before-all.sh
 ok 2 test1.sh # SKIP
 # skipped because before-all.sh did not succeed.
 ok 3 test2.sh # SKIP
 # skipped because before-all.sh did not succeed.
-ok 4 after-all.sh # 0 sec" ]]
+ok 4 after-all.sh" ]]

@@ -18,8 +18,8 @@ OUT=$(tt-runner ${WORKDIR} \
   --after-all-regex 'post')
 
 [[ ${OUT} == "1..5
-ok 1 pre.sh # 0 sec
-ok 2 setup.sh # 0 sec
-ok 3 1.t # 0 sec
-ok 4 teardown.sh # 0 sec
-ok 5 post.sh # 0 sec" ]]
+ok 1 pre.sh
+ok 2 setup.sh
+ok 3 1.t
+ok 4 teardown.sh
+ok 5 post.sh" ]]

@@ -12,5 +12,5 @@ OUT=$(tt-runner ${WORKDIR} --only 2 3)
 
 [[ ${OUT} == "1..3
 ok 1 test1.sh # SKIP
-ok 2 test2.sh # 0 sec
-ok 3 test3.sh # 0 sec" ]]
+ok 2 test2.sh
+ok 3 test3.sh" ]]

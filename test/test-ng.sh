@@ -14,4 +14,4 @@ fi
 set -e
 
 [[ ${OUT} == "1..1
-not ok 1 test1.sh # 0 sec" ]]
+not ok 1 test1.sh" ]]

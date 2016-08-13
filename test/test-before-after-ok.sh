@@ -12,9 +12,9 @@ create_succeeding_test ${WORKDIR}/after.sh
 OUT=$(tt-runner ${WORKDIR})
 
 [[ ${OUT} == "1..6
-ok 1 before.sh # 0 sec
-ok 2 test1.sh # 0 sec
-ok 3 after.sh # 0 sec
-ok 4 before.sh # 0 sec
-ok 5 test2.sh # 0 sec
-ok 6 after.sh # 0 sec" ]]
+ok 1 before.sh
+ok 2 test1.sh
+ok 3 after.sh
+ok 4 before.sh
+ok 5 test2.sh
+ok 6 after.sh" ]]

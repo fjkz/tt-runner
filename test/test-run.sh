@@ -14,8 +14,8 @@ OUT=$(tt-runner ${WORKDIR})
 set -e
 
 [[ ${OUT} == "1..4
-ok 1 run1.sh # 0 sec
-ok 2 run2.sh # 0 sec
-not ok 3 run3.sh # 0 sec
+ok 1 run1.sh
+ok 2 run2.sh
+not ok 3 run3.sh
 ok 4 run4.sh # SKIP
 # skipped because run3.sh did not succeed." ]]

@@ -12,7 +12,7 @@ create_succeeding_test ${WORKDIR}/after-all.sh
 OUT=$(tt-runner ${WORKDIR})
 
 [[ ${OUT} == "1..4
-ok 1 before-all.sh # 0 sec
-ok 2 test1.sh # 0 sec
-ok 3 test2.sh # 0 sec
-ok 4 after-all.sh # 0 sec" ]]
+ok 1 before-all.sh
+ok 2 test1.sh
+ok 3 test2.sh
+ok 4 after-all.sh" ]]

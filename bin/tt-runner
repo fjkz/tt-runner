@@ -545,14 +545,14 @@ def run_ops(operations):
                       ['# ' + line for line in op.message.splitlines()])
 
             if op.status == Operation.SUCCEEDED:
-                line = 'ok {0:d} {1:s} # {2:.0f} sec{3:s}'.format(
-                        i, op, op.elapsed, message)
+                line = 'ok {0:d} {1:s}{2:s}'.format(
+                        i, op, message)
                 print color(GREEN, line)
                 f.write(line + '\n')
 
             elif op.status == Operation.FAILED:
-                line = 'not ok {0:d} {1:s} # {2:.0f} sec{3:s}'.format(
-                        i, op, op.elapsed, message)
+                line = 'not ok {0:d} {1:s}{2:s}'.format(
+                        i, op, message)
                 print color(RED, line)
                 f.write(line + '\n')
 
