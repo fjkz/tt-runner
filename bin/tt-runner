@@ -21,9 +21,12 @@ ROOT_PATH = '.'
 OUTPUT_DIR = '/'
 
 COLOR_OUTPUT = False
+CHDIR = True
+
 RANDOMIZE = False
 RAND_SEED = 0
-CHDIR = True
+MULTI_PRE_POST = False
+
 STOP_ON_FAILURE = False
 ONLY_OPS = []
 SKIP_OPS = []
@@ -54,13 +57,21 @@ def parse_args():
     parser.add_argument('--color', action='store_true',
             help='color output')
 
-    parser.add_argument('--randomize', nargs='?', metavar='SEED',
-            type=int, default=None, const=random.randint(0,65535),
-            help='randomize the order of running tests')
-
     parser.add_argument('--no-chdir', action='store_true',
             help='do not change the working directory to the directory ' +
                  'where a script exists.')
+
+    quality_group = parser.add_argument_group(
+            'options for enhancing quality of testing scripts')
+
+    quality_group.add_argument('--randomize', nargs='?', metavar='SEED',
+            type=int, default=None, const=random.randint(0,65535),
+            help='randomize the order of running tests. ' +
+                 'enhance independency among test cases')
+
+    quality_group.add_argument('--multiply-pre-post', action='store_true',
+            help='run preconditioning and postconditioning scripts twice. ' +
+                 'enhance idempotency of them')
 
     debug_group = parser.add_argument_group('options for testing of tests')
 
@@ -137,6 +148,9 @@ def parse_args():
     global COLOR_OUTPUT
     COLOR_OUTPUT = args.color
 
+    global CHDIR
+    CHDIR = not args.no_chdir
+
     global RANDOMIZE
     global RAND_SEED
     if args.randomize:
@@ -147,8 +161,8 @@ def parse_args():
         RANDOMIZE = False
         RAND_SEED = None
 
-    global CHDIR
-    CHDIR = not args.no_chdir
+    global MULTI_PRE_POST
+    MULTI_PRE_POST = args.multiply_pre_post
 
     global STOP_ON_FAILURE
     global ONLY_OPS
@@ -464,6 +478,11 @@ def create_plan(root_node):
         my_depends_out = copy.copy(depends)
         my_depends_out.extend(before_all_ops)
 
+        if MULTI_PRE_POST:
+            before_all_ops2 = get_before_all_ops(node, depends)
+            ops_under_node.extend(before_all_ops2)
+            my_depends_out.extend(before_all_ops2)
+
         # note: temporary execcute before-operations and after-operations
         # respectively before and after run-operations. In the future, we
         # might prohibit that a node contains both of run-operations and
@@ -499,6 +518,16 @@ def create_plan(root_node):
             # after nodes
             after_ops = get_after_ops(node, my_depends_out)
             ops_under_node.extend(after_ops)
+
+        if MULTI_PRE_POST:
+            for _ in range(2):
+                before_ops = get_before_ops(node, my_depends_out)
+                ops_under_node.extend(before_ops)
+            for _ in range(2):
+                after_ops = get_after_ops(node, my_depends_out)
+                ops_under_node.extend(after_ops)
+            after_all_ops2 = get_after_all_ops(node, depends)
+            ops_under_node.extend(after_all_ops2)
 
         # after-all nades
         after_all_ops = get_after_all_ops(node, depends)
