@@ -1,12 +1,6 @@
-# TT-Runner
+# TT-Runner: a testing scripts runner
 
-A directory structure framework and a runner for testing scripts.
-
-TT-Runner has following features:
-
-- organize test scripts into a tree;
-- run before / after operation for each tests like xUnit;
-- compatible to Test Anything Protocol.
+TT-Runner is a directory structure framework for testing scripts. It can organize legacy testing scripts into a tree, and it can run them as like using modern testing frameworks.
 
 ## Usage
 
@@ -23,29 +17,25 @@ sample/test-simple
 We can run them with assigning the root path of the test suite. The result is printed on the console.
 
 ```
-$ ./bin/tt-runner  sample/test-simple
+$ ./bin/tt-runner sample/test-simple
 1..2
-
-# run test_ok.sh
-test_ok.sh's output
-ok 1 test_ok.sh
 
 # run test_ng.sh
 test_ng's output
-not ok 2 test_ng.sh
+not ok 1 test_ng.sh
 
-# tests = 2
+# run test_ok.sh
+test_ok.sh's output
+ok 2 test_ok.sh
+
+# operations = 2
 # succeeded = 1
 # failed = 1
 # skipped = 0
-# time = 0.0 sec
+# time-taken = 0 [sec]
 ```
 
-TT-Runner verifies whether each test succeeded or failed with the exit-code. Therefore, each testing script must return a non-zero exit-code when the test fails.
-
-Script files must be executable. Unexecutable files are ignored. Any programming language is available, but do not forget the shebang.
-
-The output in the stdout is obeying Test Anything Protocol (TAP). We can integrate TT-Runner to Jenkins with Jenkins TAP Plugin.
+The output in the stdout is obeying Test Anything Protocol (TAP).
 
 ```
 $ ./bin/tree-test-runner.py sample/test-simple 2>/dev/null
@@ -53,6 +43,24 @@ $ ./bin/tree-test-runner.py sample/test-simple 2>/dev/null
 ok 1 test_ok.sh
 not ok 2 test_ng.sh
 ```
+
+The result is also output to the directory specified with `-o` option.
+
+```
+$ ./bin/tt-runner sample/test-simple -o result 1>/dev/null 2>/dev/null
+$ ls result
+1.test_ng.sh.out  2.test_ok.sh.out  result.txt
+```
+
+`*.out` are stdout and stderr of each scripts. `result.txt` is the TAP formatted result.
+
+### Testing scripts
+
+Testing scripts must return a non-zero exit-code when the test fails. TT-Runner verifies whether each test succeeded or failed with the exit-code.
+
+Script files must be executable. Unexecutable files are skipped. Any programming language is available, but do not forget the shebang.
+
+Testing scripts are executed in the directory where they exist. TT-Runner change the working directory internally. If we do not want to change the working directory, we can set `--no-chdir` option.
 
 ### Directory structure
 
@@ -65,23 +73,23 @@ TT-Runner runs a test suite in a directory. Executable files and child directori
 - before-all node,
 - after-all node.
 
-They have file names starting with respectively "test", "run", "before", "after", "before-all" and "after-all". These prefixes can be configured with  following command line options: `--test-prefix`, `--run-prefix`, `--before-prefix`, `--after-prefix`, `--before-all-prefix` and `--after-all-prefix`.
+TT-Runner classifies node types with file names. Each node has a file name starting with respectively "test", "run", "before", "after", "before-all" and "after-all". These prefixes can be configured with following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--before-all-regex` and `--after-all-regex`.
 
-Each node can have child nodes as directory entries. That is, the test suite has a tree structure. When a node is executed, the child nodes are executed recursively. By using this, we can gather existing test suites under a one directory and run at once.
+Each node can have child nodes as directory entries. That is, the test suite has a tree structure. When a node is executed, the child nodes are executed recursively.
 
-### Test node
+#### Test node
 
 Test nodes are main test cases.
 
-Each test should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr. For repeatablity, we can assign a random seed.
+Each test case should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr. For repeatablity, we can assign a random seed.
 
-### Run node
+#### Run node
 
 Run nodes are used as children of other node types. Unlike test nodes, run node has sequences. They are run by the ascending order.
 
 We do not recommend that run nodes and other type nodes should be included in the same directory.
 
-### Before / after node
+#### Before / after node
 
 Before (after) nodes are preconditioning (postconditioning) scripts. They run before (after) each test case like `@Before` (`@After`) in JUnit4.
 
@@ -122,9 +130,9 @@ ok 2 test.sh # SKIP
 ok 3 after.sh
 ```
 
-### Before-all / after-all node
+#### Before-all / after-all node
 
-Before-all (after-all) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run *once* before (after) all tests in the same directory. They are used for deploying the tested program before testing, for example.
+Before-all (after-all) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run *once* before (after) all tests in the same directory.
 
 ```
 $ tree sample/test-before-after-all
@@ -145,6 +153,8 @@ ok 4 test2.sh
 ok 5 after-all2.sh
 ok 6 after-all1.sh
 ```
+
+Preconditioning or postconditioning operations in before, after, before-all and after-all nodes should idempotent. We can check idempotency with `--multiply-pre-post` option. With this option, preconditioning or postconditioning operations are run twice.
 
 ## Requirement
 
