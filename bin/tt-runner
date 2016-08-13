@@ -504,10 +504,11 @@ def create_plan(root_node):
 
     depends = []
     operations = visit(root_node, depends)
-    id_num = 1
-    for op in operations:
-        op.id_num = id_num
-        id_num += 1
+
+    # Set id numbers of operations
+    for i in range(len(operations)):
+        operations[i].id_num = i + 1
+
     return operations
 
 def set_env_vars():
