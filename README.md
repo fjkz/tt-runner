@@ -2,13 +2,13 @@
 
 [![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
 
-TT-Runner is a directory structure framework for testing scripts. It can organize legacy testing scripts into a tree, and it can run them as like using modern testing frameworks.
+*TT-Runner* is a directory structure framework for testing scripts. It can organize legacy testing scripts into a tree, and it can run them as like using modern testing frameworks.
 
 ## Usage
 
-### Run tests
+### Running tests
 
-Suppose that we have a test-suite below.
+Suppose that we have testing scripts below.
 
 ```
 sample/test-simple
@@ -16,7 +16,9 @@ sample/test-simple
 └── test_ok.sh
 ```
 
-We can run them with assigning the root path of the test suite. The result is printed on the console.
+We can run them by invoking `tt-runner` with the root path of the scripts. If all the test cases pass, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
+
+The result is printed on the console.
 
 ```
 $ ./bin/tt-runner sample/test-simple
@@ -37,7 +39,7 @@ ok 2 test_ok.sh
 # time-taken = 0 [sec]
 ```
 
-The output in the stdout is obeying Test Anything Protocol (TAP).
+The stdout obeys [Test Anything Protocol (TAP)](http://testanything.org/).
 
 ```
 $ ./bin/tree-test-runner.py sample/test-simple 2>/dev/null
@@ -54,19 +56,19 @@ $ ls result
 1.test_ng.sh.out  2.test_ok.sh.out  result.txt
 ```
 
-`*.out` are stdout and stderr of each scripts. `result.txt` is the TAP formatted result.
+`*.out` are the stdout and the stderr of each scripts. `result.txt` is the TAP formatted result.
 
 ### Testing scripts
 
-Testing scripts must return a non-zero exit-code when the test fails. TT-Runner verifies whether each test succeeded or failed with the exit-code.
+Testing scripts must exit with a non-zero status code when the test fails. TT-Runner verifies whether each test succeeded or failed with status code.
 
-Script files must be executable. Unexecutable files are skipped. Any programming language is available, but do not forget the shebang.
+Script files must be executable. Unexecutable files are skipped. Any programming language are available, but do not forget the shebang.
 
-Testing scripts are executed in the directory where they exist. TT-Runner change the working directory internally. If we do not want to change the working directory, we can set `--no-chdir` option.
+Testing scripts are executed in the directory where they exist. TT-Runner changes the working directory internally. If we do not want to change the working directory, we can set `--no-chdir` option.
 
 ### Directory structure
 
-TT-Runner runs a test suite in a directory. Executable files and child directories in the directory are called *nodes*. TT-Runner defines six node types:
+Files and directories in the directory are called *nodes*. Six node types are defined:
 
 - test node,
 - run node,
@@ -75,15 +77,15 @@ TT-Runner runs a test suite in a directory. Executable files and child directori
 - before-all node,
 - after-all node.
 
-TT-Runner classifies node types with file names. Each node has a file name starting with respectively "test", "run", "before", "after", "before-all" and "after-all". These prefixes can be configured with following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--before-all-regex` and `--after-all-regex`.
+Node types are classfied with file names. File names of each type node start with respectively "test", "run", "before", "after", "before-all" and "after-all". These prefixes can be configured with following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--before-all-regex` and `--after-all-regex`.
 
-Each node can have child nodes as directory entries. That is, the test suite has a tree structure. When a node is executed, the child nodes are executed recursively.
+Each node can have child nodes as directory entries. When a node is executed, the child nodes are executed recursively.
 
 #### Test node
 
 Test nodes are main test cases.
 
-Each test case should be independent. For enhancing independency, TT-Runner can randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr. For repeatablity, we can assign a random seed.
+Each test case should be independent. For enhancing independency, TT-Runner randomize the order of running tests with the `--randomize` option. In randomizing mode, TT-Runner shuffles the order of tests in the same directory. The random seed is printed at the tail of the stderr. For repeatablity, we can assign a random seed.
 
 #### Run node
 
@@ -95,7 +97,7 @@ We do not recommend that run nodes and other type nodes should be included in th
 
 Before (after) nodes are preconditioning (postconditioning) scripts. They run before (after) each test case like `@Before` (`@After`) in JUnit4.
 
-Before-operations are run as the ascending order, and after-operations are run as the descending order. `beforeX` and `afterX` should form a pair that is, the condition setup in `beforeX` should be cleaned in `afterX`
+Before-operations are run as the ascending order, and after-operations are run as the descending order. `beforeX` and `afterX` should form a pair. The condition setup in `beforeX` should be cleaned in `afterX`
 
 ```
 $ tree sample/test-before-after
@@ -134,7 +136,7 @@ ok 3 after.sh
 
 #### Before-all / after-all node
 
-Before-all (after-all) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run *once* before (after) all tests in the same directory.
+Before-all (after-all) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run once before (after) all tests in the same directory.
 
 ```
 $ tree sample/test-before-after-all
@@ -156,7 +158,7 @@ ok 5 after-all2.sh
 ok 6 after-all1.sh
 ```
 
-Preconditioning or postconditioning operations in before, after, before-all and after-all nodes should idempotent. We can check idempotency with `--multiply-pre-post` option. With this option, preconditioning or postconditioning operations are run twice.
+Preconditioning or postconditioning operations should be idempotent. We can check idempotency with `--multiply-pre-post` option. With this option, preconditioning or postconditioning operations are run twice.
 
 ## Requirement
 
