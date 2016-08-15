@@ -25,12 +25,17 @@ $ ./bin/tt-runner sample/test-simple
 1..2
 not ok 1 test_ng.sh
 ok 2 test_ok.sh
+---
+operations       : 2
+succeeded        : 1
+failed           : 1
+skipped          : 0
+time taken [sec] : 0
 
-# operations = 2
-# succeeded = 1
-# failed = 1
-# skipped = 0
-# time-taken = 0 [sec]
+FAILURE
+
+- 1 test_ng.sh
+
 ```
 
 The result is also output to the directory specified with `-o` option.
@@ -41,7 +46,7 @@ $ ls result
 1.test_ng.sh.out  2.test_ok.sh.out  result.txt
 ```
 
-`*.out` are the stdout and the stderr of each scripts. `result.txt` is the TAP formatted result.
+`result.txt` is the TAP formatted result. `*.out` are the stdout and the stderr of each scripts. Output of scripts can be seen in the console with `--print-log` option.
 
 ### Testing scripts
 

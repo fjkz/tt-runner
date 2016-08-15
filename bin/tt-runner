@@ -314,7 +314,7 @@ class Operation():
         else:
             console = NullFile()
 
-        console.write(color(BLUE, '\n# run {0:s}\n'.format(self)))
+        console.write(color(BLUE, '\n** run {0:s} **\n'.format(self)))
 
         if CHDIR:
             # Change the working directory to the directory where
@@ -620,31 +620,39 @@ def summarize(operations):
     Return False if one or more operations are failed.
     '''
 
-    num_test = len(operations)
-    num_sunceeded = len(filter(
-        lambda o : o.status == Operation.SUCCEEDED, operations))
-    num_failed = len(filter(
-        lambda o : o.status == Operation.FAILED, operations))
-    num_skipped = len(filter(
-        lambda o : o.status  == Operation.SKIPPED, operations))
+    successes = filter(
+        lambda o : o.status == Operation.SUCCEEDED, operations)
+    failures = filter(
+        lambda o : o.status == Operation.FAILED, operations)
+    skippes = filter(
+        lambda o : o.status  == Operation.SKIPPED, operations)
     elapsed = sum([ o.elapsed for o in operations ])
+    is_success = not len(failures) > 0
 
-    message = ('\n' +
-               '# operations = ' + str(num_test) + '\n' +
-               '# succeeded = ' + str(num_sunceeded) + '\n' +
-               '# failed = ' + str(num_failed) + '\n' +
-               '# skipped = ' + str(num_skipped) + '\n' +
-               '# time-taken = {0:.0f} [sec]'.format(elapsed))
+    message =  '---\n'
+    message += 'operations       : {0:d}\n'.format(len(operations))
+    message += 'succeeded        : {0:d}\n'.format(len(successes))
+    message += 'failed           : {0:d}\n'.format(len(failures))
+    message += 'skipped          : {0:d}\n'.format(len(skippes))
+    message += 'time taken [sec] : {0:.0f}\n'.format(elapsed)
 
     if RANDOMIZE:
-        message += '\n# random-seed = {0:d}'.format(RAND_SEED)
+        message += (
+               'random seed      : {0:d}\n'.format(RAND_SEED))
 
-    print >> sys.stderr, color(BLUE, message)
-
-    if num_failed > 0:
-        return False
+    if is_success:
+        message += color(GREEN, '\nSUCCESS\n')
     else:
-        return True
+        message += color(RED, '\nFAILURE\n\n')
+        for f in failures:
+            message += (
+                   '- {0:d} {1:s}\n'.format(f.id_num, f))
+
+    message += '\n'
+
+    print >> sys.stderr, message,
+
+    return is_success
 
 if __name__ == '__main__':
     parse_args()
