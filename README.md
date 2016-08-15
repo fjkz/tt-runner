@@ -18,18 +18,12 @@ sample/test-simple
 
 We can run them by invoking `tt-runner` with the root path of the scripts. If all the test cases pass, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
 
-The result is printed on the console.
+The result is printed on the console. The stdout obeys [Test Anything Protocol (TAP)](http://testanything.org/).
 
 ```
 $ ./bin/tt-runner sample/test-simple
 1..2
-
-# run test_ng.sh
-test_ng's output
 not ok 1 test_ng.sh
-
-# run test_ok.sh
-test_ok.sh's output
 ok 2 test_ok.sh
 
 # operations = 2
@@ -37,15 +31,6 @@ ok 2 test_ok.sh
 # failed = 1
 # skipped = 0
 # time-taken = 0 [sec]
-```
-
-The stdout obeys [Test Anything Protocol (TAP)](http://testanything.org/).
-
-```
-$ ./bin/tree-test-runner.py sample/test-simple 2>/dev/null
-1..2
-ok 1 test_ok.sh
-not ok 2 test_ng.sh
 ```
 
 The result is also output to the directory specified with `-o` option.

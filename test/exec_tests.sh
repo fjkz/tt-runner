@@ -9,4 +9,4 @@ export WORKDIR="/tmp/tt-runner-tests"
 export CONFDIR="${MYDIR}/conf"
 rm -rf result
 tt-runner scripts -o result \
-  --color --randomize --multiply-preconditioning 2>/dev/null
+  --color --randomize --multiply-preconditioning

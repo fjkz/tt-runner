@@ -27,6 +27,7 @@ RANDOMIZE = False
 RAND_SEED = 0
 MULTIPLY_PRE = False
 
+PRINT_LOG = False
 STOP_ON_FAILURE = False
 ONLY_OPS = []
 SKIP_OPS = []
@@ -76,6 +77,8 @@ def parse_args():
 
     debug_group = parser.add_argument_group('options for testing of tests')
 
+    debug_group.add_argument('--print-log', action='store_true',
+            help='print the stdout and the stderr of scripts')
     debug_group.add_argument('--stop-on-failure', action='store_true',
             help='skip remaining operations if an operation fails. ' +
                  'do not run postconditioning operations.')
@@ -165,10 +168,12 @@ def parse_args():
     global MULTIPLY_PRE
     MULTIPLY_PRE = args.multiply_preconditioning
 
+    global PRINT_LOG
     global STOP_ON_FAILURE
     global ONLY_OPS
     global SKIP_OPS
     global SKIP_ALL
+    PRINT_LOG = args.print_log
     STOP_ON_FAILURE = args.stop_on_failure
     ONLY_OPS = args.only
     SKIP_OPS = args.skip
@@ -237,6 +242,10 @@ def color(color, message):
     else:
         return message
 
+class NullFile():
+    def write(self, string):
+        pass
+
 class Operation():
     '''
     A unit of testing. Represent each executable script file.
@@ -299,8 +308,13 @@ class Operation():
             self.message = str(self) + ' is not executable.'
             return
 
-        print >> sys.stderr, color(BLUE, '')
-        print >> sys.stderr, color(BLUE, '# run ' + str(self))
+        console = None
+        if PRINT_LOG:
+            console = sys.stderr
+        else:
+            console = NullFile()
+
+        console.write(color(BLUE, '\n# run {0:s}\n'.format(self)))
 
         if CHDIR:
             # Change the working directory to the directory where
@@ -320,8 +334,8 @@ class Operation():
             # to stderr and logfile
             with process.stdout, open(logfile, 'wb') as f:
                 for line in iter(process.stdout.readline, b''):
-                    print >> sys.stderr, line,
                     f.write(line)
+                    console.write(line)
 
             process.wait()
 
