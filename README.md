@@ -12,7 +12,7 @@ Suppose that we have testing scripts below.
 
 ```
 sample/test-simple
-├── test_ng.sh
+├── test_not_ok.sh
 └── test_ok.sh
 ```
 
@@ -23,7 +23,7 @@ The result is printed on the console. The stdout obeys [Test Anything Protocol (
 ```
 $ ./bin/tt-runner sample/test-simple
 1..2
-not ok 1 test_ng.sh
+not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
 ---
 operations       : 2
@@ -34,7 +34,7 @@ time taken [sec] : 0
 
 FAILURE
 
-- 1 test_ng.sh
+- 1 test_not_ok.sh
 
 ```
 
@@ -43,7 +43,7 @@ The result is also output to the directory specified with `-o` option.
 ```
 $ ./bin/tt-runner sample/test-simple -o result 1>/dev/null 2>/dev/null
 $ ls result
-1.test_ng.sh.out  2.test_ok.sh.out  result.txt
+1.test_not_ok.sh.out  2.test_ok.sh.out  result.txt
 ```
 
 `result.txt` is the TAP formatted result. `*.out` are the stdout and the stderr of each scripts. Output of scripts can be seen in the console with `--print-log` option.
@@ -64,10 +64,10 @@ Files and directories in the directory are called *nodes*. Six node types are de
 - run node,
 - before node,
 - after node,
-- before-all node,
-- after-all node.
+- init node,
+- final node.
 
-Node types are classfied with file names. File names of each type node start with respectively "test", "run", "before", "after", "before-all" and "after-all". These prefixes can be configured with following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--before-all-regex` and `--after-all-regex`.
+Node types are classfied with file names. File names of each type node start with respectively "test", "run", "before", "after", "init" and "final". These prefixes can be configured with following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--init-regex` and `--final-regex`.
 
 Each node can have child nodes as directory entries. When a node is executed, the child nodes are executed recursively.
 
@@ -120,32 +120,32 @@ $ ./bin/tt-runner sample/test-skip 2>/dev/null
 1..3
 not ok 1 before.sh
 ok 2 test.sh # SKIP
-# skipped because before.sh did not succeed.
+# before.sh did not succeed.
 ok 3 after.sh
 ```
 
-#### Before-all / after-all node
+#### Init / final node
 
-Before-all (after-all) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run once before (after) all tests in the same directory.
+Init (final) nodes are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4. They are run once before (after) all tests in the same directory.
 
 ```
-$ tree sample/test-before-after-all
-sample/test-before-after-all
-├── after-all1.sh
-├── after-all2.sh
-├── before-all1.sh
-├── before-all2.sh
+$ tree sample/test-init-final
+sample/test-init-final
+├── final1.sh
+├── final2.sh
+├── init1.sh
+├── init2.sh
 ├── test1.sh
 └── test2.sh
 
-$ ./bin/tt-runner sample/test-before-after-all 2>/dev/null
+$ ./bin/tt-runner sample/test-init-final 2>/dev/null
 1..6
-ok 1 before-all1.sh
-ok 2 before-all2.sh
+ok 1 init1.sh
+ok 2 init2.sh
 ok 3 test1.sh
 ok 4 test2.sh
-ok 5 after-all2.sh
-ok 6 after-all1.sh
+ok 5 final2.sh
+ok 6 final1.sh
 ```
 
 Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. With this option preconditioning operations are run twice. Note that postconditiong operations do not need to be idempotent because they should expect preconditions are satisfied.

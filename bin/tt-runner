@@ -1,334 +1,516 @@
 #!/usr/bin/env python2
 
 '''
-TT-Runner: a testing scripts runner
+TT-Runner: A Testing Scripts Runner
 '''
 
-import argparse
-import copy
+from argparse import ArgumentParser
+from copy import copy
 import os
 import random
 import re
 import shutil
-import signal
-import stat
-import subprocess
+from signal import SIGINT
+from subprocess import Popen, PIPE, STDOUT
 import sys
 import time
 
-# configurations
-ROOT_PATH = '.'
-OUTPUT_DIR = '/'
+# global configuration object
+world = None
 
-COLOR_OUTPUT = False
-CHDIR = True
+# default configuration values
+default = {
+        'output dir'   : '/tmp/tt-runner',
+        'test regex'   : 'test',
+        'run regex'    : 'run',
+        'before regex' : 'before',
+        'after regex'  : 'after',
+        'init regex'   : 'init',
+        'final regex'  : 'final',
+        }
 
-RANDOMIZE = False
-RAND_SEED = 0
-MULTIPLY_PRE = False
-
-PRINT_LOG = False
-STOP_ON_FAILURE = False
-ONLY_OPS = []
-SKIP_OPS = []
-SKIP_ALL = False # can be changed in running
-
-TEST_REGEX = None
-RUN_REGEX = None
-BEFORE_REGEX = None
-AFTER_REGEX = None
-BEFORE_ALL_REGEX = None
-AFTER_ALL_REGEX = None
-
-def parse_args():
+class MyParser(ArgumentParser):
     '''
-    Parse command line argument and set to the configuration variables.
+    My argument parser
     '''
 
-    parser = argparse.ArgumentParser(description=
-            'A testing scripts runner')
+    def __new__(cls):
+        '''
+        Create my parser. Define options and usage document.
+        '''
+        parser = ArgumentParser(description='A Testing Scripts Runner')
 
-    parser.add_argument('PATH', nargs=1,
-            help='root path of the test suite')
+        parser.add_argument(
+                'PATH',
+                nargs=1,
+                help='path to the root directory of the testing scripts')
+        d = default['output dir']
+        parser.add_argument(
+                '-o', '--output',
+                metavar='PATH',
+                nargs=1,
+                # do not set default value because we change behavior
+                # if this option is set or not in Environment()
+                default=[d],
+                help=('path where results are saved. '
+                      'default: {0}').format(d))
+        parser.add_argument(
+                '--color',
+                action='store_true',
+                help='color output')
+        parser.add_argument(
+                '--no-change-dir',
+                action='store_true',
+                help='do not change the working directory')
 
-    parser.add_argument('-o', '--output', nargs=1,
-            help='directory the testing results are saved. ' +
-                 'default: /tmp/tt-runner')
 
-    parser.add_argument('--color', action='store_true',
-            help='color output')
+        quality_group = parser.add_argument_group(
+                'options for enhancing quality of testing scripts')
+        quality_group.add_argument(
+                '--randomize',
+                metavar='SEED',
+                nargs='?',
+                type=int,
+                default=None, # it means this options is not set
+                const=random.randint(0,65535),
+                help=('randomize the order of running tests. '
+                      'enhance independency among test cases'))
+        quality_group.add_argument(
+                '--multiply-preconditioning',
+                action='store_true',
+                help=('run preconditioning scripts twice. '
+                      'enhance idempotency of them'))
 
-    parser.add_argument('--no-chdir', action='store_true',
-            help='do not change the working directory to the directory ' +
-                 'where a script exists.')
 
-    quality_group = parser.add_argument_group(
-            'options for enhancing quality of testing scripts')
+        debug_group = parser.add_argument_group(
+                'options for testing of tests')
+        debug_group.add_argument(
+                '--print-log',
+                action='store_true',
+                help='print the stdout and the stderr of scripts')
+        debug_group.add_argument(
+                '--stop-on-failure',
+                action='store_true',
+                help=('skip remaining operations if an operation fails. '
+                      'do not run postconditioning operations.'))
 
-    quality_group.add_argument('--randomize', nargs='?', metavar='SEED',
-            type=int, default=None, const=random.randint(0,65535),
-            help='randomize the order of running tests. ' +
-                 'enhance independency among test cases')
+        skip_group = debug_group.add_mutually_exclusive_group()
+        skip_group.add_argument(
+                '--skip-all',
+                action='store_true',
+                help='skip all operations')
+        skip_group.add_argument(
+                '--only',
+                metavar='N',
+                nargs='+',
+                type=int,
+                default=[],
+                help=('run only specified operations. '
+                      'do not run preconditioning or '
+                      'postconditioning operations'))
+        skip_group.add_argument(
+                '--skip',
+                metavar='N',
+                nargs='+',
+                type=int,
+                default=[],
+                help='skip specified operations')
 
-    quality_group.add_argument('--multiply-preconditioning',
-            action='store_true',
-            help='run preconditioning scripts twice. ' +
-                 'enhance idempotency of them')
 
-    debug_group = parser.add_argument_group('options for testing of tests')
+        prefix_group = parser.add_argument_group(
+                'options for specifying node type')
+        d = default['test regex']
+        prefix_group.add_argument(
+                '--test-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'main testing script name. '
+                      'default: {0}').format(d))
+        d = default['run regex']
+        prefix_group.add_argument(
+                '--run-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'operation script name. '
+                      'default: {0}').format(d))
+        d = default['before regex']
+        prefix_group.add_argument(
+                '--before-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'preconditioning script name. '
+                      'run before each test in the same directory. '
+                      'default: {0}').format(d))
+        d = default['after regex']
+        prefix_group.add_argument(
+                '--after-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'postconditioning script name. '
+                      'run after each test in the same directory. '
+                      'default: {0}').format(d))
+        d = default['init regex']
+        prefix_group.add_argument(
+                '--init-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'preconditioning script name. '
+                      'run once before all tests in the same directory. '
+                      'default: {0}').format(d))
+        d = default['final regex']
+        prefix_group.add_argument(
+                '--final-regex',
+                metavar='RE',
+                nargs=1,
+                default=[d],
+                help=('regular expression matching with '
+                      'postconditioning script name. '
+                      'run once after all tests in the same directory. '
+                      'default: {0}').format(d))
 
-    debug_group.add_argument('--print-log', action='store_true',
-            help='print the stdout and the stderr of scripts')
-    debug_group.add_argument('--stop-on-failure', action='store_true',
-            help='skip remaining operations if an operation fails. ' +
-                 'do not run postconditioning operations.')
+        return parser
 
-    skip_group = debug_group.add_mutually_exclusive_group()
-    skip_group.add_argument('--only', nargs='+', metavar='N',
-            type=int, default=[],
-            help='run only specified operations. ' +
-                 'do not run preconditioning or postconditioning operations')
-    skip_group.add_argument('--skip', nargs='+', metavar='N',
-            type=int, default=[],
-            help='skip specified operations')
-    skip_group.add_argument('--skip-all', action='store_true',
-            help='skip all operations')
+class Environment(dict):
+    '''
+    Dictionally of configuration properties
+    '''
 
-    prefix_group = parser.add_argument_group('options for specifying node type')
+    def __init__(self):
+        args = MyParser().parse_args()
 
-    prefix_group.add_argument('--test-regex', nargs=1, metavar='RE',
-            default=['test'],
-            help='regular expression matching with ' +
-                 'main testing scripts\' names. ' +
-                 'default: test')
+        self['root dir'] = os.path.abspath(args.PATH[0])
+        self['output dir'] = os.path.abspath(args.output[0])
+        self['color output'] = args.color
+        self['change dir'] = not args.no_change_dir
 
-    prefix_group.add_argument('--run-regex', nargs=1, metavar='RE',
-            default=['run'],
-            help='regular expression matching with ' +
-                 'operation scripts\' names. ' +
-                 'default: run')
+        ## Quality options
 
-    prefix_group.add_argument('--before-regex', nargs=1, metavar='RE',
-            default=['before'],
-            help='regular expression matching with ' +
-                 'preconditioning scripts\' names. ' +
-                 'run before each test in the same directory. ' +
-                 'default: before')
+        # when --randomize option is assigned
+        if args.randomize:
+            self['randomize'] = True
+            self['random seed'] = args.randomize
+            random.seed(args.randomize)
+        else:
+            self['randomize'] = False
 
-    prefix_group.add_argument('--after-regex', nargs=1, metavar='RE',
-            default=['after'],
-            help='regular expression matching with ' +
-                 'postconditioning scripts\' names. ' +
-                 'run after each test in the same directory. ' +
-                 'default: after')
+        self['multiply preconditioning'] = args.multiply_preconditioning
 
-    prefix_group.add_argument('--before-all-regex', nargs=1, metavar='RE',
-            default=['before-all'],
-            help='regular expression matching with ' +
-                 'preconditioning scripts\' name. ' +
-                 'run once before all tests in the same directory. ' +
-                 'default: before-all')
+        ## Testing for test options
 
-    prefix_group.add_argument('--after-all-regex', nargs=1, metavar='RE',
-            default=['after-all'],
-            help='regular expression matching with ' +
-                 'postconditioning scripts\' name. ' +
-                 'run once after all tests in the same directory. ' +
-                 'default: after-all')
+        self['print log'] = args.print_log
+        self['stop on failure'] = args.stop_on_failure
 
-    args = parser.parse_args()
+        # note: can be changed in running
+        self['skip all']  = args.skip_all
 
-    global ROOT_PATH
-    ROOT_PATH = os.path.abspath(args.PATH[0])
+        self['only list'] = args.only
+        self['skip list'] = args.skip
 
-    global OUTPUT_DIR
-    if args.output != None:
-        OUTPUT_DIR = os.path.abspath(args.output[0])
-    else:
-        OUTPUT_DIR = '/tmp/tt-runner'
-        if os.path.lexists(OUTPUT_DIR):
-            shutil.rmtree(OUTPUT_DIR)
+        ## Regex options
 
-    global COLOR_OUTPUT
-    COLOR_OUTPUT = args.color
+        self['test regex'] = re.compile(args.test_regex[0])
+        self['run regex'] = re.compile(args.run_regex[0])
+        self['before regex'] = re.compile(args.before_regex[0])
+        self['after regex'] = re.compile(args.after_regex[0])
+        self['init regex'] = re.compile(args.init_regex[0])
+        self['final regex'] = re.compile(args.final_regex[0])
 
-    global CHDIR
-    CHDIR = not args.no_chdir
+    def setup(self):
+        '''
+        Set up environment.
+        '''
+        # for repeatable running, cleanup the output directory
+        # if -o option is not assigned
+        d = default['output dir']
+        if self['output dir'] == d:
+            if os.path.lexists(d):
+                shutil.rmtree(d)
 
-    global RANDOMIZE
-    global RAND_SEED
-    if args.randomize:
-        RANDOMIZE = True
-        RAND_SEED = args.randomize
-        random.seed(RAND_SEED)
-    else:
-        RANDOMIZE = False
-        RAND_SEED = None
+        # create the output directory
+        os.makedirs(self['output dir'])
 
-    global MULTIPLY_PRE
-    MULTIPLY_PRE = args.multiply_preconditioning
-
-    global PRINT_LOG
-    global STOP_ON_FAILURE
-    global ONLY_OPS
-    global SKIP_OPS
-    global SKIP_ALL
-    PRINT_LOG = args.print_log
-    STOP_ON_FAILURE = args.stop_on_failure
-    ONLY_OPS = args.only
-    SKIP_OPS = args.skip
-    SKIP_ALL = args.skip_all
-
-    global TEST_REGEX
-    global RUN_REGEX
-    global BEFORE_REGEX
-    global AFTER_REGEX
-    global BEFORE_ALL_REGEX
-    global AFTER_ALL_REGEX
-    TEST_REGEX = re.compile(args.test_regex[0])
-    RUN_REGEX = re.compile(args.run_regex[0])
-    BEFORE_REGEX = re.compile(args.before_regex[0])
-    AFTER_REGEX = re.compile(args.after_regex[0])
-    BEFORE_ALL_REGEX = re.compile(args.before_all_regex[0])
-    AFTER_ALL_REGEX = re.compile(args.after_all_regex[0])
+        # set environment variables in the process
+        os.environ['TT_RUNNER_EXEC_DIR'] = os.getcwd()
+        os.environ['TT_RUNNER_ROOT_DIR'] = self['root dir']
+        os.environ['TT_RUNNER_OUTPUT_DIR'] = self['output dir']
 
 class Node():
     '''
-    A node of the test script tree.
+    A node of the scripts tree, a directory.
     '''
 
-    def __init__(self, path, is_leaf=False):
-        # Path to file.
+    def __init__(self, path,
+            tests, runs,
+            befores, afters,
+            inits, finals):
+
+        # absolute path to the file directory
         self.path = os.path.abspath(path)
 
-        # Child nodes.
-        self.tests = []
-        self.runs = []
-        self.befores = []
-        self.afters = []
-        self.before_alls = []
-        self.after_alls = []
-
-        # True if the node is a file.
-        self.is_leaf = is_leaf
-
-    def __repr__(self):
-        return 'Node(' + self.path + ')'
+        # child nodes
+        self.tests = tests
+        self.runs = runs
+        self.befores = befores
+        self.afters = afters
+        self.inits = inits
+        self.finals = finals
 
     def __str__(self):
-        return os.path.relpath(self.path, ROOT_PATH)
+        return os.path.relpath(self.path, world["root dir"])
+
+    def name(self):
+        '''
+        Get the directory or file name, not the path.
+        '''
+        return os.path.basename(self.path)
 
     def is_empty(self):
-        if (len(self.tests) == 0 and
-            len(self.runs) == 0 and
-            len(self.befores) == 0 and
-            len(self.afters) == 0 and
-            len(self.before_alls) == 0 and
-            len(self.after_alls) == 0 and
-            self.is_leaf == False):
+        if (self.tests and self.runs and
+            self.befores and self.afters and
+            self.inits and self.finals):
             return True
         else:
             return False
 
-RED = '\033[91m'
-GREEN = '\033[92m'
-YELLOW = '\033[93m'
-BLUE = '\033[94m'
+    def accept(self, visitor):
+        visitor.visit_node(self)
 
-def color(color, message):
-    if COLOR_OUTPUT:
-        END = '\033[0m'
-        return color + message + END
-    else:
-        return message
+class Leaf(Node):
+    '''
+    A script file
+    '''
+
+    def __init__(self, path):
+        # absolute path to the file
+        self.path = os.path.abspath(path)
+
+    def is_empty(self):
+        return False
+
+    def accept(self, visitor):
+        visitor.visit_leaf(self)
+
+class NodeGroup(list):
+    '''
+    List of node objects
+    '''
+
+    def randomized(self):
+        '''
+        Return randomized node list
+        '''
+        out = self.sorted()
+        if world['randomize']:
+            random.shuffle(out)
+        return out
+
+    def sorted(self, reverse=False):
+        '''
+        Return node list sorted by path name
+        '''
+        return sorted(self, key=lambda node: node.path, reverse=reverse)
+
+class TestGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_test_group(self)
+
+class RunGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_run_group(self)
+
+class BeforeGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_before_group(self)
+
+class AfterGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_after_group(self)
+
+class InitGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_init_group(self)
+
+class FinalGroup(NodeGroup):
+    def accept(self, visitor):
+        visitor.visit_final_group(self)
+
+class Tree():
+    '''
+    A tree of node objects.
+    It traces the directory structure of test scripts
+    '''
+
+    def __init__(self, root_path):
+        '''
+        Create tree
+        '''
+        self.root_node = self.__create_nodes(root_path)
+
+    class StringFormatter():
+        def get_string(self, tree):
+            self.string = ''
+            self.indent = ''
+            tree.root_node.accept(self)
+            return self.string
+
+        def visit_node(self, node):
+            self.string += self.indent + '- ' + node.name() + '\n'
+
+            indent_copy = copy(self.indent)
+            self.indent += '  '
+
+            node.inits.accept(self)
+            node.befores.accept(self)
+            node.runs.accept(self)
+            node.tests.accept(self)
+            node.afters.accept(self)
+            node.finals.accept(self)
+
+            self.indent = indent_copy
+
+        def visit_leaf(self, leaf):
+            self.string += self.indent + '- ' + leaf.name() + '\n'
+
+        def visit_test_group(self, test_group):
+            for test in test_group.sorted():
+                test.accept(self)
+
+        def visit_run_group(self, run_group):
+            for run in run_group.sorted():
+                run.accept(self)
+
+        def visit_before_group(self, before_group):
+            for before in before_group.sorted():
+                before.accept(self)
+
+        def visit_after_group(self, after_group):
+            for after in after_group.sorted(reverse=True):
+                after.accept(self)
+
+        def visit_init_group(self, init_group):
+            for init in init_group.sorted():
+                init.accept(self)
+
+        def visit_final_group(self, final_group):
+            for final in final_group.sorted(reverse=True):
+                final.accept(self)
+
+    def __str__(self):
+        return Tree.StringFormatter().get_string(self)
+
+    def __create_nodes(self, path):
+        '''
+        Create node objects under the path recursively.
+        return a node object that represents the path
+        '''
+
+        if os.path.isfile(path):
+            return Leaf(path)
+
+        def __create_child_nodes(childs, regex):
+            names = filter(lambda n : regex.match(n), childs)
+            pathes = map(lambda n : os.path.join(path, n), names)
+            nodes = map(lambda p : self.__create_nodes(p), pathes)
+            non_empty_nodes = filter(lambda n : not n.is_empty(), nodes)
+            return non_empty_nodes
+
+        childs = os.listdir(path)
+
+        tests = TestGroup()
+        nodes = __create_child_nodes(childs, world['test regex'])
+        tests.extend(nodes)
+
+        runs = RunGroup()
+        nodes = __create_child_nodes(childs, world['run regex'])
+        runs.extend(nodes)
+
+        befores = BeforeGroup()
+        nodes = __create_child_nodes(childs, world['before regex'])
+        befores.extend(nodes)
+
+        afters = AfterGroup()
+        nodes = __create_child_nodes(childs, world['after regex'])
+        afters.extend(nodes)
+
+        inits = InitGroup()
+        nodes = __create_child_nodes(childs, world['init regex'])
+        inits.extend(nodes)
+
+        finals = FinalGroup()
+        nodes = __create_child_nodes(childs, world['final regex'])
+        finals.extend(nodes)
+
+        return Node(path, tests, runs,
+                    befores, afters, inits, finals)
+
+class Console():
+    __color_head = {
+        'red'    : '\033[91m',
+        'green'  : '\033[92m',
+        'yellow' : '\033[93m',
+        'blue'   : '\033[94m',
+    }
+
+    def __init__(self, out):
+        self.out = out
+
+    def write(self, message, color=None):
+        end = '\033[0m'
+        if world['color output'] and color:
+            message = Console.__color_head[color] + message + end
+        self.out.write(message)
+        self.out.flush()
 
 class NullFile():
     def write(self, string):
         pass
+    def flush(self):
+        pass
 
-class Operation():
+class Executor():
     '''
-    A unit of testing. Represent each executable script file.
+    A runner for simple executable files
     '''
 
-    # Status
-    NOT_DONE, SUCCEEDED, FAILED, SKIPPED = range(4)
-
-    def __init__(self, path, depends):
-        self.path = path
-        self.depends = copy.copy(depends)
-        self.status = Operation.NOT_DONE
-        self.elapsed = 0.0
-        self.message = ''
-        self.id_num = 0 # set in create_plan
-
-    def __repr__(self):
-        return ('Operation(path=' + self.path +
-                ', depends=[' +
-                ','.join([str(d) for d in self.depends]) +
-                '], status=' + self.status + ')')
-
-    def __str__(self):
-        return os.path.relpath(self.path, ROOT_PATH)
-
-    def logfile_name(self):
-        assert self.id_num > 0
-        return str(self.id_num) + '.' + str(self).replace(os.sep, '.') + '.out'
-
-    def run(self):
-        '''
-        Exec this operation.
-        The result is set into field variables.
-        '''
-
-        if SKIP_ALL:
-            self.status = Operation.SKIPPED
-            return
-
-        if self.id_num in SKIP_OPS:
-            self.status = Operation.SKIPPED
-            return
-
-        if len(ONLY_OPS) > 0 and self.id_num not in ONLY_OPS:
-            self.status = Operation.SKIPPED
-            return
-
-        # Skip if depending operation did not succeed.
-        for depend_op in self.depends:
-            assert depend_op.status != Operation.NOT_DONE
-            if depend_op.status != Operation.SUCCEEDED:
-                self.status = Operation.SKIPPED
-                self.message = ('skipped because ' + str(depend_op) +
-                                ' did not succeed.')
-                return
+    def run(self, operation):
 
         # Skip if the file is not executable.
-        if not os.access(self.path, os.R_OK | os.X_OK):
-            self.status = Operation.SKIPPED
-            self.message = str(self) + ' is not executable.'
+        if not os.access(operation.path, os.R_OK | os.X_OK):
+            operation.status = OpState.SKIPPED
+            operation.message = str(operation) + ' is not executable.'
             return
 
-        console = None
-        if PRINT_LOG:
-            console = sys.stderr
+        if world['print log']:
+            console = Console(sys.stderr)
         else:
-            console = NullFile()
+            console = Console(NullFile())
 
-        console.write(color(BLUE, '\n** run {0:s} **\n'.format(self)))
+        console.write('\n** run {0:s} **\n'.format(operation), 'blue')
 
-        if CHDIR:
+        if world['change dir']:
             # Change the working directory to the directory where
             # the script exists.
-            os.chdir(os.path.dirname(self.path))
+            os.chdir(os.path.dirname(operation.path))
 
         start = time.time()
 
         process = None
         try:
-            process = subprocess.Popen([self.path],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT)
-            logfile = os.path.join(OUTPUT_DIR, self.logfile_name())
+            process = Popen([operation.path],
+                    stdout=PIPE,
+                    stderr=STDOUT)
+            logfile = os.path.join(
+                    world['output dir'], operation.logfile_name())
 
             # write stdout and stderr of the operation
             # to stderr and logfile
@@ -341,326 +523,368 @@ class Operation():
 
         except OSError as e:
             # For the case when the script at the path has not shebang.
-            self.status = Operation.FAILED
-            self.message = ('OSError: ' + str(e) + '\n' +
+            operation.status = OpState.FAILED
+            operation.message = ('OSError: ' + str(e) + '\n' +
                             'Is the shebang correct?')
             return
 
         except KeyboardInterrupt as i:
-            process.send_signal(signal.SIGINT)
+            process.send_signal(SIGINT)
             process.wait()
-            self.message = 'KeyboardInterrupt'
+            operation.message = 'KeyboardInterrupt'
 
         end = time.time()
-        self.elapsed = end - start
+        operation.elapsed = end - start
 
         if process.returncode != 0:
-            self.status = Operation.FAILED
+            operation.status = OpState.FAILED
         else:
-            self.status = Operation.SUCCEEDED
+            operation.status = OpState.SUCCEEDED
 
-def create_tree(path):
+class OpState():
     '''
-    Return node object that represents the path.
+    Operation state
+    '''
+    (
+        NOT_DONE,
+        SUCCEEDED,
+        FAILED,
+        SKIPPED,
+    ) = range(4)
+
+    @staticmethod
+    def color(status):
+        if status == OpState.SUCCEEDED:
+            return 'green'
+        if status == OpState.FAILED:
+            return 'red'
+        if status == OpState.SKIPPED:
+            return 'yellow'
+        assert False
+
+class Operation():
+    '''
+    A unit of testing. Represent each executable script file.
     '''
 
-    def get_child_node(child_path):
-        if os.path.isfile(child_path):
-            return Node(child_path, is_leaf=True)
+    def __init__(self, path, depends):
+        self.path = path
+        self.depends = copy(depends)
+
+        self.status = OpState.NOT_DONE
+        self.elapsed = 0.0
+        self.message = ''
+        self.id_num = 0
+
+        self.executor = Executor()
+
+    def set_id(self, id_num):
+        assert self.id_num == 0
+        assert id_num > 0
+        self.id_num = id_num
+
+    def __str__(self):
+        return os.path.relpath(self.path, world['root dir'])
+
+    def tap_message(self):
+        '''
+        Return TAP formatted message
+        '''
+        if self.message != '':
+            # put '# ' at the front of each line
+            message = '\n' + '\n'.join(
+                  ['# ' + line for line in self.message.splitlines()])
         else:
-            child_node = create_tree(child_path)
-            if child_node.is_empty():
-                return None
-            else:
-                return child_node
+            message = ''
 
-    node = Node(path)
-    for entry in os.listdir(path):
-        child_path = os.path.join(path, entry)
+        if self.status == OpState.SUCCEEDED:
+            return 'ok {0:d} {1:s}{2:s}'.format(
+                    self.id_num, self, message)
 
-        # If the directory entry has one of prefixes,
-        # add it to the child nodes.
+        elif self.status == OpState.FAILED:
+            return 'not ok {0:d} {1:s}{2:s}'.format(
+                    self.id_num, self, message)
 
-        if TEST_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.tests.append(child_node)
+        elif self.status == OpState.SKIPPED:
+            return 'ok {0:d} {1:s} # SKIP{2:s}'.format(
+                    self.id_num, self, message)
 
-        elif RUN_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.runs.append(child_node)
+        else:
+            assert False
 
-        # Before-all and after-all prefixes have higher priority
-        # than before and after prefixes.
-        elif BEFORE_ALL_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.before_alls.append(child_node)
+    def logfile_name(self):
+        assert self.id_num > 0
+        return (str(self.id_num) + '.' +
+                str(self).replace(os.sep, '.') + '.out')
 
-        elif AFTER_ALL_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.after_alls.append(child_node)
-
-        elif BEFORE_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.befores.append(child_node)
-
-        elif AFTER_REGEX.match(entry):
-            child_node = get_child_node(child_path)
-            if child_node == None:
-                continue
-            node.afters.append(child_node)
-
-    return node
-
-def create_plan(root_node):
-    '''
-    Return a list of operations.
-    '''
-
-    def randomize_nodes(in_nodes):
-        if not RANDOMIZE:
-            return sorted_nodes(in_nodes)
-        out_nodes = copy.copy(in_nodes)
-        random.shuffle(out_nodes)
-        return out_nodes
-
-    def sorted_nodes(in_nodes):
-        return sorted(in_nodes, key=lambda node: node.path)
-
-    def revsorted_nodes(in_nodes):
-        return sorted(in_nodes, key=lambda node: node.path, reverse=True)
-
-    def get_before_all_ops(node, depends):
-        my_depends = copy.copy(depends)
-        before_all_ops = []
-        for before_all_node in sorted_nodes(node.before_alls):
-            ops = visit(before_all_node, my_depends)
-            before_all_ops.extend(ops)
-            # Depends previous before-all operations.
-            my_depends.extend(ops)
-        return before_all_ops
-
-    def get_after_all_ops(node, depends):
-        after_all_ops= []
-        for after_all_node in revsorted_nodes(node.after_alls):
-            ops = visit(after_all_node, depends)
-            after_all_ops.extend(ops)
-        return after_all_ops
-
-    def get_before_ops(node, depends):
-        my_depends = copy.copy(depends)
-        before_ops = []
-        for before_node in sorted_nodes(node.befores):
-            ops = visit(before_node, my_depends)
-            before_ops.extend(ops)
-            # Depends previous before operations.
-            my_depends.extend(ops)
-        return before_ops
-
-    def get_after_ops(node, depends):
-        after_ops= []
-        for after_node in revsorted_nodes(node.afters):
-            ops = visit(after_node, depends)
-            after_ops.extend(ops)
-        return after_ops
-
-    def visit(node, depends):
+    def run(self):
         '''
-        Visit nodes recursively and return the list of operations
-        under the node.
+        Exec this operation.
+        The result is set into field variables.
+        '''
+        assert self.id_num > 0
+        assert self.status == OpState.NOT_DONE
+
+        if world['skip all']:
+            self.status = OpState.SKIPPED
+            return
+
+        if self.id_num in world['skip list']:
+            self.status = OpState.SKIPPED
+            return
+
+        if (len(world['only list']) > 0 and
+                self.id_num not in world['only list']):
+            self.status = OpState.SKIPPED
+            return
+
+        # Skip if depending operation did not succeed.
+        for depend_op in self.depends:
+            assert depend_op.status != OpState.NOT_DONE
+            if depend_op.status != OpState.SUCCEEDED:
+                self.status = OpState.SKIPPED
+                self.message = str(depend_op) + ' did not succeed.'
+                return
+
+        self.executor.run(self)
+
+class Planner():
+    '''
+    Create an operation plan
+    '''
+
+    # use the visitor design patten.
+    # this visits Node class and NodeGroup class recursively.
+
+    def create_plan(self, tree):
+        '''
+        Return a plan object
+        '''
+        self.planned_operations = Plan()
+        self.depended_operations = []
+        tree.root_node.accept(self)
+        assert len(self.depended_operations) == 0
+
+        id_num = 0
+        for op in self.planned_operations:
+            id_num += 1
+            op.set_id(id_num)
+
+        return self.planned_operations
+
+    def visit_node(self, node):
+        '''
+        Define the relations between node types
         '''
 
-        # Tree is end.
-        if node.is_leaf:
-            op = Operation(node.path, depends)
-            return [op]
+        # accept method must be sandwiched between __set and __reset.
+        # FIXME: this syntax might be difficult to under stand.
+        #        rewrite more readable way.
+        __m = []
+        def __set(list):
+            '''Remember the current state '''
+            __m.append(len(list))
 
-        # Operations in the nodes under this node.
-        ops_under_node = []
+        def __reset(list):
+            ''' Reset to the remembered state '''
+            length = __m.pop()
+            del list[length:]
 
-        # before-all nodes
-        before_all_ops = get_before_all_ops(node, depends)
-        ops_under_node.extend(before_all_ops)
-        my_depends_out = copy.copy(depends)
-        my_depends_out.extend(before_all_ops)
+        __set(self.depended_operations)
 
-        if MULTIPLY_PRE:
-            before_all_ops2 = get_before_all_ops(node, my_depends_out)
-            ops_under_node.extend(before_all_ops2)
-            my_depends_out.extend(before_all_ops2)
+        node.inits.accept(self)
+        if world['multiply preconditioning']:
+            node.inits.accept(self)
 
-        # note: temporary execcute before-operations and after-operations
+        # note: temporary execute before-operations and after-operations
         # respectively before and after run-operations. In the future, we
         # might prohibit that a node contains both of run-operations and
         # other operations.
+
         if len(node.runs) > 0:
-            # before nodes
-            before_ops = get_before_ops(node, my_depends_out)
-            ops_under_node.extend(before_ops)
-            my_depends_in = copy.copy(my_depends_out)
-            my_depends_in.extend(before_ops)
+            __set(self.depended_operations)
 
-            # run nodes
-            for run_node in sorted_nodes(node.runs):
-                run_ops = visit(run_node, my_depends_in)
-                ops_under_node.extend(run_ops)
-                my_depends_in.extend(run_ops)
+            node.befores.accept(self)
+            node.runs.accept(self)
 
-            # after nodes
-            after_ops = get_after_ops(node, my_depends_out)
-            ops_under_node.extend(after_ops)
+            __reset(self.depended_operations)
+            __set(self.depended_operations)
+
+            node.afters.accept(self)
+
+            __reset(self.depended_operations)
 
         first_test = True
-        for test_node in randomize_nodes(node.tests):
-            # before nodes
-            before_ops = get_before_ops(node, my_depends_out)
-            ops_under_node.extend(before_ops)
-            my_depends_in = copy.copy(my_depends_out)
-            my_depends_in.extend(before_ops)
+        for test in node.tests.randomized():
+            __set(self.depended_operations)
 
-            if MULTIPLY_PRE and first_test:
-                before_ops2 = get_before_ops(node, my_depends_in)
-                ops_under_node.extend(before_ops2)
-                my_depends_in.extend(before_ops2)
-                first_test = False
+            node.befores.accept(self)
+            if world['multiply preconditioning'] and first_test:
+                node.befores.accept(self)
+            first_test = False
 
-            # test node
-            test_ops = visit(test_node, my_depends_in)
-            ops_under_node.extend(test_ops)
+            test.accept(self)
 
-            # after nodes
-            after_ops = get_after_ops(node, my_depends_out)
-            ops_under_node.extend(after_ops)
+            __reset(self.depended_operations)
+            __set(self.depended_operations)
 
-        # after-all nades
-        after_all_ops = get_after_all_ops(node, depends)
-        ops_under_node.extend(after_all_ops)
+            node.afters.accept(self)
 
-        return ops_under_node
+            __reset(self.depended_operations)
 
-    depends = []
-    operations = visit(root_node, depends)
+        __reset(self.depended_operations)
+        __set(self.depended_operations)
 
-    # Set id numbers of operations
-    for i in range(len(operations)):
-        operations[i].id_num = i + 1
+        node.finals.accept(self)
 
-    return operations
+        __reset(self.depended_operations)
 
-def set_env_vars():
+    def visit_leaf(self, leaf):
+        '''
+        Add new operation object
+        '''
+        operation = Operation(leaf.path, self.depended_operations)
+        self.planned_operations.append(operation)
+        self.depended_operations.append(operation)
+
+    def visit_test_group(self, test_group):
+        '''
+        This planner do not do not visit test group
+        '''
+        assert False
+
+    def visit_run_group(self, run_group):
+        '''
+        Visit run nodes in the sequential order
+        '''
+        for run_node in run_group.sorted():
+            run_node.accept(self)
+
+    def visit_before_group(self, before_group):
+        '''
+        Visit bofore nodes in the sequential order
+        '''
+        for before_node in before_group.sorted():
+            before_node.accept(self)
+
+    def visit_after_group(self, after_group):
+        '''
+        Visit bofore nodes in the reversed order
+        '''
+        for after_node in after_group.sorted(reverse=True):
+            after_node.accept(self)
+
+    def visit_init_group(self, init_group):
+        '''
+        Visit init nodes in the sequential order
+        '''
+        for init_node in init_group.sorted():
+            init_node.accept(self)
+
+    def visit_final_group(self, final_group):
+        '''
+        Visit final nodes in the sequential order
+        '''
+        for final_node in final_group.sorted(reverse=True):
+            final_node.accept(self)
+
+class Plan(list):
     '''
-    Set environment variables.
-    They are used in testing scripts to be executed.
-    '''
-
-    os.environ["TT_RUNNER_EXEC_DIR" ] = os.getcwd()
-    os.environ["TT_RUNNER_ROOT_DIR" ] = ROOT_PATH
-    os.environ["TT_RUNNER_OUTPUT_DIR"] = OUTPUT_DIR
-
-def run_ops(operations):
-    '''
-    Run operations.
-    '''
-
-    tapfile = os.path.join(OUTPUT_DIR, 'result.txt')
-    with open(tapfile, 'w') as f:
-
-        num_ops = len(operations)
-        line = '1..{0:d}'.format(num_ops)
-        print color(GREEN, line)
-        f.write(line + '\n')
-
-        # For each operations
-        for i in range(1, num_ops + 1):
-            op = operations[i - 1]
-            op.run()
-
-            # Format message
-            message = ''
-            if op.message != '':
-                message = '\n' + '\n'.join(
-                      ['# ' + line for line in op.message.splitlines()])
-
-            if op.status == Operation.SUCCEEDED:
-                line = 'ok {0:d} {1:s}{2:s}'.format(
-                        i, op, message)
-                print color(GREEN, line)
-                f.write(line + '\n')
-
-            elif op.status == Operation.FAILED:
-                line = 'not ok {0:d} {1:s}{2:s}'.format(
-                        i, op, message)
-                print color(RED, line)
-                f.write(line + '\n')
-
-            elif op.status == Operation.SKIPPED:
-                line = 'ok {0:d} {1:s} # SKIP{2:s}'.format(i, op, message)
-                print color(YELLOW, line)
-                f.write(line + '\n')
-
-            else:
-                assert False
-
-            if STOP_ON_FAILURE and op.status == Operation.FAILED:
-                global SKIP_ALL
-                SKIP_ALL = True
-
-def summarize(operations):
-    '''
-    Print the summary of operations.
-    Return False if one or more operations are failed.
+    List of operation objects.
     '''
 
-    successes = filter(
-        lambda o : o.status == Operation.SUCCEEDED, operations)
-    failures = filter(
-        lambda o : o.status == Operation.FAILED, operations)
-    skippes = filter(
-        lambda o : o.status  == Operation.SKIPPED, operations)
-    elapsed = sum([ o.elapsed for o in operations ])
-    is_success = not len(failures) > 0
+    def run(self):
+        '''
+        Run the operations
+        '''
 
-    message =  '---\n'
-    message += 'operations       : {0:d}\n'.format(len(operations))
-    message += 'succeeded        : {0:d}\n'.format(len(successes))
-    message += 'failed           : {0:d}\n'.format(len(failures))
-    message += 'skipped          : {0:d}\n'.format(len(skippes))
-    message += 'time taken [sec] : {0:.0f}\n'.format(elapsed)
+        console = Console(sys.stdout)
+        tapfile = os.path.join(world['output dir'], 'result.txt')
+        with open(tapfile, 'w') as f:
 
-    if RANDOMIZE:
-        message += (
-               'random seed      : {0:d}\n'.format(RAND_SEED))
+            line = self.tap_header() + '\n'
+            console.write(line, 'green')
+            f.write(line)
 
-    if is_success:
-        message += color(GREEN, '\nSUCCESS\n')
-    else:
-        message += color(RED, '\nFAILURE\n\n')
-        for f in failures:
-            message += (
-                   '- {0:d} {1:s}\n'.format(f.id_num, f))
+            # For each operations
+            for op in self:
+                op.run()
 
-    message += '\n'
+                # print result
+                msg = op.tap_message() + '\n'
+                console.write(msg, OpState.color(op.status))
+                f.write(msg)
 
-    print >> sys.stderr, message,
+                if world['stop on failure'] and op.status == OpState.FAILED:
+                    world['skip all'] = True
 
-    return is_success
+    def num_operations(self):
+        return len(self)
+
+    def tap_header(self):
+        return '1..{0:d}'.format(self.num_operations())
+
+    def succeeded_oparations(self):
+        return filter(lambda o : o.status == OpState.SUCCEEDED, self)
+
+    def failed_oparations(self):
+        return filter(lambda o : o.status == OpState.FAILED, self)
+
+    def skipped_operations(self):
+        return filter(lambda o : o.status  == OpState.SKIPPED, self)
+
+    def total_elapsed_time(self):
+        return sum([ o.elapsed for o in self ])
+
+    def has_succeeded(self):
+        return not len(self.failed_oparations()) > 0
+
+    def summarize(self):
+        '''
+        Print the summary of operations.
+        Return False if one or more operations are failed.
+        '''
+
+        console = Console(sys.stderr)
+
+        table = (
+            '---\n'
+            'operations       : {0:d}\n'
+            'succeeded        : {1:d}\n'
+            'failed           : {2:d}\n'
+            'skipped          : {3:d}\n'
+            'time taken [sec] : {4:.0f}\n'
+            ).format(self.num_operations(),
+                    len(self.succeeded_oparations()),
+                    len(self.failed_oparations()),
+                    len(self.skipped_operations()),
+                    self.total_elapsed_time())
+
+        if world['randomize']:
+            table += ('random seed      : {0:d}\n'
+                .format(world['random seed']))
+
+        console.write(table)
+
+        if self.has_succeeded():
+            console.write('\nSUCCESS\n\n', 'green')
+        else:
+            console.write('\nFAILURE\n\n', 'red')
+
+            # list of failed oparations
+            lines = [ '- {0:d} {1:s}\n'.format(f.id_num, f)
+                        for f in self.failed_oparations() ]
+            console.write(''.join(lines)+ '\n')
 
 if __name__ == '__main__':
-    parse_args()
-    os.makedirs(OUTPUT_DIR)
-    root_node = create_tree(ROOT_PATH)
-    operations = create_plan(root_node)
-    set_env_vars()
-    run_ops(operations)
-    is_success = summarize(operations)
-    if not is_success:
+    world = Environment()
+    world.setup()
+    tree = Tree(world['root dir'])
+    plan = Planner().create_plan(tree)
+    plan.run()
+    plan.summarize()
+
+    if not plan.has_succeeded():
         sys.exit(1)
+    else:
+        sys.exit(0)

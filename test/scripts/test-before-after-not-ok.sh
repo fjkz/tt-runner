@@ -16,9 +16,9 @@ set -e
 [[ ${OUT} == "1..6
 not ok 1 before.sh
 ok 2 test1.sh # SKIP
-# skipped because before.sh did not succeed.
+# before.sh did not succeed.
 ok 3 after.sh
 not ok 4 before.sh
 ok 5 test2.sh # SKIP
-# skipped because before.sh did not succeed.
+# before.sh did not succeed.
 ok 6 after.sh" ]]

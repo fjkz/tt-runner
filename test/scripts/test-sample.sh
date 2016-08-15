@@ -17,5 +17,5 @@ time taken [sec] : 0
 
 FAILURE
 
-- 28 test-simple/test_ng.sh
+- 28 test-simple/test_not_ok.sh
 - 30 test-skip/before.sh' ]]

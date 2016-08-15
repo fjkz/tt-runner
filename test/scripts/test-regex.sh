@@ -11,11 +11,11 @@ create_succeeding_test ${WORKDIR}/teardown.sh
 create_succeeding_test ${WORKDIR}/post.sh
 
 OUT=$(tt-runner ${WORKDIR} \
-  --before-all-regex 'pre' \
+  --init-regex 'pre' \
   --before-regex 'setup' \
   --test-regex '.+\.t' \
   --after-regex 'teardown' \
-  --after-all-regex 'post')
+  --final-regex 'post')
 
 [[ ${OUT} == "1..5
 ok 1 pre.sh
