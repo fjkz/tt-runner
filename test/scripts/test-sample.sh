@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+. ${CONFDIR}/config.sh
+
 set -xu
 
-ERR=$(tt-runner ../sample 2>&1 1>/dev/null)
+ERR=$(tt-runner ${SAMPLE_DIR} 2>&1 1>/dev/null)
 
 set -e
 
