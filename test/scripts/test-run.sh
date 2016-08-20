@@ -18,4 +18,4 @@ ok 1 run1.sh
 ok 2 run2.sh
 not ok 3 run3.sh
 ok 4 run4.sh # SKIP
-# run3.sh did not succeed." ]]
+# 3 run3.sh did not succeed." ]]
