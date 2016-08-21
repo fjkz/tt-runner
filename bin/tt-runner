@@ -43,7 +43,7 @@ class MyParser(ArgumentParser):
         parser.add_argument(
                 'PATH',
                 nargs=1,
-                help='path to the root directory of the testing scripts')
+                help='path to the root directory of a test suite')
         d = default['output dir']
         parser.add_argument(
                 '-o', '--output',
@@ -52,7 +52,7 @@ class MyParser(ArgumentParser):
                 # do not set default value because we change behavior
                 # if this option is set or not in Environment()
                 default=[d],
-                help=('path where results are saved. '
+                help=('path to a directory saving the result. '
                       'default: {0}').format(d))
         parser.add_argument(
                 '--color',
@@ -65,7 +65,7 @@ class MyParser(ArgumentParser):
 
 
         quality_group = parser.add_argument_group(
-                'options for enhancing quality of testing scripts')
+                'options for enhancing the quality of test suites')
         quality_group.add_argument(
                 '--randomize',
                 metavar='SEED',
@@ -73,26 +73,23 @@ class MyParser(ArgumentParser):
                 type=int,
                 default=None, # it means this options is not set
                 const=random.randint(0,65535),
-                help=('randomize the order of running tests. '
-                      'enhance independency among test cases'))
+                help='randomize the order of running tests')
         quality_group.add_argument(
                 '--multiply-preconditioning',
                 action='store_true',
-                help=('run preconditioning scripts twice. '
-                      'enhance idempotency of them'))
+                help='run preconditioning scripts twice in a row')
 
 
         debug_group = parser.add_argument_group(
-                'options for testing of tests')
+                'options for testing of test suites')
         debug_group.add_argument(
                 '--print-log',
                 action='store_true',
-                help='print the stdout and the stderr of scripts')
+                help='print stdout and stderr of running scripts')
         debug_group.add_argument(
                 '--stop-on-failure',
                 action='store_true',
-                help=('skip remaining operations if an operation fails. '
-                      'do not run postconditioning operations.'))
+                help='skip remaining operations if an operation fails')
 
         skip_group = debug_group.add_mutually_exclusive_group()
         skip_group.add_argument(
@@ -105,9 +102,7 @@ class MyParser(ArgumentParser):
                 nargs='+',
                 type=int,
                 default=[],
-                help=('run only specified operations. '
-                      'do not run preconditioning or '
-                      'postconditioning operations'))
+                help='run only specified operations')
         skip_group.add_argument(
                 '--skip',
                 metavar='N',
@@ -118,15 +113,14 @@ class MyParser(ArgumentParser):
 
 
         prefix_group = parser.add_argument_group(
-                'options for specifying node type')
+                'regular expressions for classifying node types')
         d = default['test regex']
         prefix_group.add_argument(
                 '--test-regex',
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'main testing script name. '
+                help=('regex matching with test nodes. '
                       'default: {0}').format(d))
         d = default['run regex']
         prefix_group.add_argument(
@@ -134,8 +128,7 @@ class MyParser(ArgumentParser):
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'operation script name. '
+                help=('regex matching with run nodes. '
                       'default: {0}').format(d))
         d = default['before regex']
         prefix_group.add_argument(
@@ -143,9 +136,7 @@ class MyParser(ArgumentParser):
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'preconditioning script name. '
-                      'run before each test in the same directory. '
+                help=('regex matching with before nodes. '
                       'default: {0}').format(d))
         d = default['after regex']
         prefix_group.add_argument(
@@ -153,9 +144,7 @@ class MyParser(ArgumentParser):
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'postconditioning script name. '
-                      'run after each test in the same directory. '
+                help=('regex matching with after nodes. '
                       'default: {0}').format(d))
         d = default['init regex']
         prefix_group.add_argument(
@@ -163,9 +152,7 @@ class MyParser(ArgumentParser):
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'preconditioning script name. '
-                      'run once before all tests in the same directory. '
+                help=('regex matching with init nodes. '
                       'default: {0}').format(d))
         d = default['final regex']
         prefix_group.add_argument(
@@ -173,9 +160,7 @@ class MyParser(ArgumentParser):
                 metavar='RE',
                 nargs=1,
                 default=[d],
-                help=('regular expression matching with '
-                      'postconditioning script name. '
-                      'run once after all tests in the same directory. '
+                help=('regex matching with final nodes. '
                       'default: {0}').format(d))
 
         return parser
