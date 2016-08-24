@@ -1,14 +1,14 @@
-# TT-Runner: A Testing Scripts Runner
+# TT-Runner: A Test Scripts Runner
 
 [![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
 
-*TT-Runner* is a directory structure framework of testing scripts. Testing scripts are organized into a directory by the determined structure. TT-Runner runs the scripts by the order automatically planed by file names. The testing result is output with [TAP (Test Anything Protocol)](http://testanything.org/).
+*TT-Runner* is a directory structure framework of test scripts. Test scripts are organized into a directory by the determined structure. TT-Runner runs the scripts by the order automatically planed by file names. The testing result is output with [TAP (Test Anything Protocol)](http://testanything.org/).
 
 ## Usage
 
 ### Running Tests
 
-Suppose that we have testing scripts below. We later describe a set of testing scripts run by TT-Runner as a test suite.
+Suppose that we have test scripts below. We later describe a set of test scripts run by TT-Runner as a test suite.
 
 ```
 sample/test-simple
@@ -16,7 +16,7 @@ sample/test-simple
 └── test_ok.sh
 ```
 
-We can run them by invoking `tt-runner` with the root path of the test suite. If all the testing scripts succeed, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
+We can run them by invoking `tt-runner` with the root path of the test suite. If all test scripts succeed, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
 
 The result is printed on the console. The standard out obeys TAP.
 
@@ -54,7 +54,7 @@ Any programming languages are available for writing scripts. Each script needs t
 
 Script files must be executable in Unix. That is, they must have readable and executable permission. Unexecutable scripts are skipped. And, do not forget the shebang (a header starting with `#!`).
 
-Testing scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
+Test scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
 
 Note that each scripts is executed in the directory where it exists. `tt-runner` changes the working directory internally when it runs a script. If you do not want to change the working directory, you can set `--no-change-dir` option.
 
