@@ -85,7 +85,7 @@ Each node can have child nodes as directory entries. When a node is executed, th
 
 Test nodes are main test cases.
 
-Test nodes in the same directory have no order. Each test case should be independent. See the section of "Enhancing the quality of test suites".
+Test nodes in the same directory have no order. Each test case should be independent. See the section of "Enhancing Quality of Test Suites".
 
 #### Run Nodes
 
@@ -165,7 +165,7 @@ The following command line options are available for testing of test suites.
 - `--only` option runs only operations that have specified ID numbers. Note that preconditioning and postconditioning are not automatically executed.
 - `--skip` option skips operations that have specified ID numbers.
 
-## Enhancing the Quality of Test Suites
+## Enhancing Quality of Test Suites
 
 Each test should be independent. For enhancing independency, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatablity.
 
