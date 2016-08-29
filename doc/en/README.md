@@ -85,7 +85,7 @@ Each node can have child nodes as directory entries. When a node is executed, th
 
 Test nodes are main test cases.
 
-Test nodes in the same directory have no order. Each test case should be independent. See the section of "Enhancing Quality of Test Suites".
+Test nodes have no order. Each test case should be independent. See the section of "Improvement of Test Suites".
 
 #### Run Nodes
 
@@ -165,9 +165,9 @@ The following command line options are available for testing of test suites.
 - `--only` option runs only operations that have specified ID numbers. Note that preconditioning and postconditioning are not automatically executed.
 - `--skip` option skips operations that have specified ID numbers.
 
-## Enhancing Quality of Test Suites
+## Improvement of Test Suites
 
-Each test should be independent. For enhancing independency, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatablity.
+Each test should be independent. In order to force tests to be independent, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatablity.
 
 Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. This option runs preconditioning operations twice in a row. Note that postconditioning operations do not need to be idempotent because they should expect preconditions are satisfied.
 

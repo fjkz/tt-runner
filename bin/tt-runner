@@ -65,7 +65,7 @@ class MyParser(ArgumentParser):
 
 
         quality_group = parser.add_argument_group(
-                'options for enhancing the quality of test suites')
+                'options for improvement of test suites')
         quality_group.add_argument(
                 '--randomize',
                 metavar='SEED',
