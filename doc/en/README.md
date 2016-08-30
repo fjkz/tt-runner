@@ -52,7 +52,7 @@ $ ls result
 
 Any programming languages are available for writing scripts. Each script needs to satisfy the following conditions.
 
-Script files must be executable in Unix. That is, they must have readable and executable permission. Unexecutable scripts are skipped. And, do not forget the shebang (a header starting with `#!`).
+Script files must be executable in Unix. That is, they must have readable and executable permission. Non-executable scripts are skipped. And, do not forget the shebang (a header starting with `#!`).
 
 Test scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
 
