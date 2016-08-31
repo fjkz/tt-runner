@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
 
-*TT-Runner* is a directory structure framework of test scripts. Test scripts are organized into a directory by the determined structure. TT-Runner runs the scripts by the order automatically planed by file names. The testing result is output with [TAP (Test Anything Protocol)](http://testanything.org/).
+*TT-Runner* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily. The testing result is output with [TAP (Test Anything Protocol)](http://testanything.org/).
 
 ## Usage
 

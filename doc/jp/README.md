@@ -2,7 +2,7 @@ Japanese in UTF-8
 
 # TT-Runner: A Test Scripts Runner
 
-**TT-Runner** はテストスクリプト群のディレクトリ構成のフレームワークです. テストスクリプト群はひとつのディレクトリ配下に定められた構成で配置されます. TT-Runner はファイル・ディレクトリの名前からスクリプトの実行順序を決定し, 実行します. テスト結果は [TAP (Test Anything Protocol)](http://testanything.org/) で出力されます.
+**TT-Runner** はテストスクリプト群のディレクトリ構成のフレームワークです. TT-Runner によってテストスクリプト群は整理されます. また, テストスクリプト群が簡単に実行できるようになります. テスト結果は [TAP (Test Anything Protocol)](http://testanything.org/) で出力されます.
 
 ## 使用法
 
