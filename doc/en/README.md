@@ -40,7 +40,7 @@ FAILURE
 
 If we set `--color` option, the console output is colored.
 
-The result is also output to the directory specified with `-o` option. `result.txt` is the TAP formatted result. `*.out` are the standard out and the standard error of each script.
+The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
 
 ```
 $ tt-runner sample/test-simple -o result 1>/dev/null 2>/dev/null
@@ -56,7 +56,7 @@ Script files must be executable in Unix. That is, they must have readable and ex
 
 Test scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
 
-Note that each scripts is executed in the directory where it exists. `tt-runner` changes the working directory internally when it runs a script. If you do not want to change the working directory, you can set `--no-change-dir` option.
+Note that each script is executed in the directory where it exists. `tt-runner` changes the working directory internally when it runs a script. If you do not want to change the working directory, you can set `--no-change-dir` option.
 
 The following environment variables are assigned when scripts are run.
 
@@ -70,34 +70,34 @@ We describe the naming rule and the directory structure that test suites must sa
 
 Files and directories in a test suite are called *nodes*. Six node types are defined:
 
-- test nodes,
-- run nodes,
-- before nodes,
-- after nodes,
-- init nodes,
-- final nodes.
+- test-nodes,
+- run-nodes,
+- before-nodes,
+- after-nodes,
+- init-nodes,
+- final-nodes.
 
 Node types are classified with file names. File names of each node type start with respectively `test`, `run`, `before`, `after`, `init` and `final`. These prefixes can be configured with the following command line options: `--test-regex`, `--run-regex`, `--before-regex`, `--after-regex`, `--init-regex` and `--final-regex`.
 
 Each node can have child nodes as directory entries. When a node is executed, the child nodes are executed recursively.
 
-#### Test Nodes
+#### Test-Nodes
 
-Test nodes are main test cases.
+Test-nodes are main test cases.
 
-Test nodes have no order. Each test case should be independent. See the section of "Improvement of Test Suites".
+Test-nodes have no order. Each test case should be independent. See the section of "Improvement of Test Suites".
 
-#### Run Nodes
+#### Run-Nodes
 
-Run nodes are used as children of other node types. Unlike test nodes, run nodes have sequence. They are run by the ascending order.
+Run-nodes are used as children of other node types. Unlike test-nodes, run-nodes have a sequence. They are run by the ascending order.
 
-We do not recommend that run nodes and other type nodes should be included in the same directory.
+We do not recommend that run-nodes and other type nodes should be included in the same directory.
 
-#### Before / After Nodes
+#### Before-Nodes / After-Nodes
 
-Before (After) nodes are preconditioning (postconditioning) scripts. They run before (After) each test node like `@Before` (`@After`) in JUnit4.
+Before-nodes (after-nodes) are preconditioning (postconditioning) scripts. They run before (after) each test-node like `@Before` (`@After`) in JUnit4.
 
-Before nodes are run as the ascending order, and after nodes are run as the descending order.
+Before-nodes are run as the ascending order, and after-nodes are run as the descending order.
 
 The following is an example.
 
@@ -127,11 +127,11 @@ ok 10 after1.sh
 
 Note that when a preconditioning operation fails the following tests are skipped.
 
-#### Init / Final Nodes
+#### Init-Nodes / Final-Nodes
 
-Init (Final) nodes are run once before (after) all tests in the same directory. They are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4.
+Init-nodes (final-nodes) are run once before (after) all tests in the same directory. They are equivalents of `@BeforeClass` (`@AfterClass`) in JUnit4.
 
-Like before nodes and after nodes, init nodes are run as the ascending order and final nodes are run as the descending order.
+Like before-nodes and after-nodes, init-nodes are run as the ascending order and final-nodes are run as the descending order.
 
 The following is an example.
 
@@ -160,14 +160,14 @@ ok 6 final1.sh
 The following command line options are available for testing of test suites.
 
 - `--print-log` option prints output of running scripts on the console.
-- `--stop-on-failure` option skips remaining operations if a operation fails. The postconditioning is also skipped then.
+- `--stop-on-failure` option skips remaining operations if an operation fails. The postconditioning is also skipped then.
 - `--skip-all` option skips all operations. We can know the execution plan and the ID number of each operation.
 - `--only` option runs only operations that have specified ID numbers. Note that preconditioning and postconditioning are not automatically executed.
 - `--skip` option skips operations that have specified ID numbers.
 
 ## Improvement of Test Suites
 
-Each test should be independent. In order to force tests to be independent, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatablity.
+Each test should be independent. In order to force tests to be independent, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatability.
 
 Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. This option runs preconditioning operations twice in a row. Note that postconditioning operations do not need to be idempotent because they should expect preconditions are satisfied.
 
