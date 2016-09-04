@@ -20,14 +20,15 @@ world = None
 
 # default configuration values
 default = {
-        'output dir'   : '/tmp/tt-runner',
-        'test regex'   : 'test',
-        'run regex'    : 'run',
-        'before regex' : 'before',
-        'after regex'  : 'after',
-        'init regex'   : 'init',
-        'final regex'  : 'final',
-        }
+    'output dir': '/tmp/tt-runner',
+    'test regex': 'test',
+    'run regex': 'run',
+    'before regex': 'before',
+    'after regex': 'after',
+    'init regex': 'init',
+    'final regex': 'final',
+    }
+
 
 class MyParser(ArgumentParser):
     '''
@@ -41,129 +42,127 @@ class MyParser(ArgumentParser):
         parser = ArgumentParser(description='A Test Scripts Runner')
 
         parser.add_argument(
-                'PATH',
-                nargs=1,
-                help='path to the root directory of a test suite')
+            'PATH',
+            nargs=1,
+            help='path to the root directory of a test suite')
         d = default['output dir']
         parser.add_argument(
-                '-o', '--output',
-                metavar='PATH',
-                nargs=1,
-                # do not set default value because we change behavior
-                # if this option is set or not in Environment()
-                default=[d],
-                help=('path to a directory saving the result. '
-                      'default: {0}').format(d))
+            '-o', '--output',
+            metavar='PATH',
+            nargs=1,
+            # do not set default value because we change behavior
+            # if this option is set or not in Environment()
+            default=[d],
+            help=('path to a directory saving the result. '
+                  'default: {0}').format(d))
         parser.add_argument(
-                '--color',
-                action='store_true',
-                help='color output')
+            '--color',
+            action='store_true',
+            help='color output')
         parser.add_argument(
-                '--no-change-dir',
-                action='store_true',
-                help='do not change the working directory')
-
+            '--no-change-dir',
+            action='store_true',
+            help='do not change the working directory')
 
         quality_group = parser.add_argument_group(
-                'options for improvement of test suites')
+            'options for improvement of test suites')
         quality_group.add_argument(
-                '--randomize',
-                metavar='SEED',
-                nargs='?',
-                type=int,
-                default=None, # it means this options is not set
-                const=random.randint(0,65535),
-                help='randomize the order of running tests')
+            '--randomize',
+            metavar='SEED',
+            nargs='?',
+            type=int,
+            default=None,  # it means this options is not set
+            const=random.randint(0, 65535),
+            help='randomize the order of running tests')
         quality_group.add_argument(
-                '--multiply-preconditioning',
-                action='store_true',
-                help='run preconditioning scripts twice in a row')
-
+            '--multiply-preconditioning',
+            action='store_true',
+            help='run preconditioning scripts twice in a row')
 
         debug_group = parser.add_argument_group(
-                'options for testing of test suites')
+            'options for testing of test suites')
         debug_group.add_argument(
-                '--print-log',
-                action='store_true',
-                help='print stdout and stderr of running scripts')
+            '--print-log',
+            action='store_true',
+            help='print stdout and stderr of running scripts')
         debug_group.add_argument(
-                '--stop-on-failure',
-                action='store_true',
-                help='skip remaining operations if an operation fails')
+            '--stop-on-failure',
+            action='store_true',
+            help='skip remaining operations if an operation fails')
 
         skip_group = debug_group.add_mutually_exclusive_group()
         skip_group.add_argument(
-                '--skip-all',
-                action='store_true',
-                help='skip all operations')
+            '--skip-all',
+            action='store_true',
+            help='skip all operations')
         skip_group.add_argument(
-                '--only',
-                metavar='N',
-                nargs='+',
-                type=int,
-                default=[],
-                help='run only specified operations')
+            '--only',
+            metavar='N',
+            nargs='+',
+            type=int,
+            default=[],
+            help='run only specified operations')
         skip_group.add_argument(
-                '--skip',
-                metavar='N',
-                nargs='+',
-                type=int,
-                default=[],
-                help='skip specified operations')
-
+            '--skip',
+            metavar='N',
+            nargs='+',
+            type=int,
+            default=[],
+            help='skip specified operations')
 
         prefix_group = parser.add_argument_group(
-                'regular expressions for classifying node types')
+            'regular expressions for classifying node types')
         d = default['test regex']
         prefix_group.add_argument(
-                '--test-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with test nodes. '
-                      'default: {0}').format(d))
+            '--test-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with test nodes. '
+                  'default: {0}').format(d))
         d = default['run regex']
         prefix_group.add_argument(
-                '--run-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with run nodes. '
-                      'default: {0}').format(d))
+            '--run-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with run nodes. '
+                  'default: {0}').format(d))
         d = default['before regex']
         prefix_group.add_argument(
-                '--before-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with before nodes. '
-                      'default: {0}').format(d))
+            '--before-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with before nodes. '
+                  'default: {0}').format(d))
         d = default['after regex']
         prefix_group.add_argument(
-                '--after-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with after nodes. '
-                      'default: {0}').format(d))
+            '--after-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with after nodes. '
+                  'default: {0}').format(d))
         d = default['init regex']
         prefix_group.add_argument(
-                '--init-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with init nodes. '
-                      'default: {0}').format(d))
+            '--init-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with init nodes. '
+                  'default: {0}').format(d))
         d = default['final regex']
         prefix_group.add_argument(
-                '--final-regex',
-                metavar='RE',
-                nargs=1,
-                default=[d],
-                help=('regex matching with final nodes. '
-                      'default: {0}').format(d))
+            '--final-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with final nodes. '
+                  'default: {0}').format(d))
 
         return parser
+
 
 class Environment(dict):
     '''
@@ -196,7 +195,7 @@ class Environment(dict):
         self['stop on failure'] = args.stop_on_failure
 
         # note: can be changed in running
-        self['skip all']  = args.skip_all
+        self['skip all'] = args.skip_all
 
         self['only list'] = args.only
         self['skip list'] = args.skip
@@ -229,12 +228,14 @@ class Environment(dict):
         os.environ['TT_RUNNER_ROOT_DIR'] = self['root dir']
         os.environ['TT_RUNNER_OUTPUT_DIR'] = self['output dir']
 
+
 class Node():
     '''
     A node of the scripts tree, a directory.
     '''
 
-    def __init__(self, path,
+    def __init__(
+            self, path,
             tests, runs,
             befores, afters,
             inits, finals):
@@ -261,14 +262,15 @@ class Node():
 
     def is_empty(self):
         if (self.tests and self.runs and
-            self.befores and self.afters and
-            self.inits and self.finals):
+                self.befores and self.afters and
+                self.inits and self.finals):
             return True
         else:
             return False
 
     def accept(self, visitor):
         visitor.visit_node(self)
+
 
 class Leaf(Node):
     '''
@@ -284,6 +286,7 @@ class Leaf(Node):
 
     def accept(self, visitor):
         visitor.visit_leaf(self)
+
 
 class NodeGroup(list):
     '''
@@ -305,29 +308,36 @@ class NodeGroup(list):
         '''
         return sorted(self, key=lambda node: node.path, reverse=reverse)
 
+
 class TestGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_test_group(self)
+
 
 class RunGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_run_group(self)
 
+
 class BeforeGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_before_group(self)
+
 
 class AfterGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_after_group(self)
 
+
 class InitGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_init_group(self)
 
+
 class FinalGroup(NodeGroup):
     def accept(self, visitor):
         visitor.visit_final_group(self)
+
 
 class Tree():
     '''
@@ -403,10 +413,10 @@ class Tree():
             return Leaf(path)
 
         def __create_child_nodes(childs, regex):
-            names = filter(lambda n : regex.match(n), childs)
-            pathes = map(lambda n : os.path.join(path, n), names)
-            nodes = map(lambda p : self.__create_nodes(p), pathes)
-            non_empty_nodes = filter(lambda n : not n.is_empty(), nodes)
+            names = filter(lambda n: regex.match(n), childs)
+            pathes = map(lambda n: os.path.join(path, n), names)
+            nodes = map(lambda p: self.__create_nodes(p), pathes)
+            non_empty_nodes = filter(lambda n: not n.is_empty(), nodes)
             return non_empty_nodes
 
         childs = os.listdir(path)
@@ -438,12 +448,13 @@ class Tree():
         return Node(path, tests, runs,
                     befores, afters, inits, finals)
 
+
 class Console():
     __color_head = {
-        'red'    : '\033[91m',
-        'green'  : '\033[92m',
-        'yellow' : '\033[93m',
-        'blue'   : '\033[94m',
+        'red': '\033[91m',
+        'green': '\033[92m',
+        'yellow': '\033[93m',
+        'blue': '\033[94m',
     }
 
     def __init__(self, out):
@@ -456,11 +467,15 @@ class Console():
         self.out.write(message)
         self.out.flush()
 
+
 class NullFile():
+
     def write(self, string):
         pass
+
     def flush(self):
         pass
+
 
 class Executor():
     '''
@@ -473,7 +488,7 @@ class Executor():
         if not os.access(operation.path, os.R_OK | os.X_OK):
             operation.status = OpState.SKIPPED
             operation.message = '{0} is not executable.'.format(
-                    operation.relpath())
+                operation.relpath())
             return
 
         if world['print log']:
@@ -482,8 +497,8 @@ class Executor():
             console = Console(NullFile())
 
         console.write(
-                '\n** run {0:s} **\n'.format(operation.relpath()),
-                'blue')
+            '\n** run {0:s} **\n'.format(operation.relpath()),
+            'blue')
 
         if world['change dir']:
             # Change the working directory to the directory where
@@ -494,11 +509,12 @@ class Executor():
 
         process = None
         try:
-            process = Popen([operation.path],
-                    stdout=PIPE,
-                    stderr=STDOUT)
+            process = Popen(
+                [operation.path],
+                stdout=PIPE,
+                stderr=STDOUT)
             logfile = os.path.join(
-                    world['output dir'], operation.logfile_name())
+                world['output dir'], operation.logfile_name())
 
             # write stdout and stderr of the operation
             # to stderr and logfile
@@ -512,8 +528,9 @@ class Executor():
         except OSError as e:
             # For the case when the script at the path has not shebang.
             operation.status = OpState.FAILED
-            operation.message = ('OSError: ' + str(e) + '\n' +
-                            'Is the shebang correct?')
+            operation.message = (
+                'OSError: ' + str(e) + '\n'
+                'Is the shebang correct?')
             return
 
         except KeyboardInterrupt as i:
@@ -528,6 +545,7 @@ class Executor():
             operation.status = OpState.FAILED
         else:
             operation.status = OpState.SUCCEEDED
+
 
 class OpState():
     '''
@@ -549,6 +567,7 @@ class OpState():
         if status == OpState.SKIPPED:
             return 'yellow'
         assert False
+
 
 class Operation():
     '''
@@ -583,8 +602,11 @@ class Operation():
         '''
         if self.message != '':
             # put '# ' at the front of each line
-            message = '\n' + '\n'.join(
-                  ['# ' + line for line in self.message.splitlines()])
+            message = (
+                '\n' +
+                '\n'.join(
+                    ['# ' + line for line in self.message.splitlines()])
+                )
         else:
             message = ''
 
@@ -600,8 +622,8 @@ class Operation():
     def logfile_name(self):
         assert self.id_num > 0
         return '{0:d}.{1:s}.out'.format(
-                    self.id_num,
-                    self.relpath().replace(os.sep, '.'))
+            self.id_num,
+            self.relpath().replace(os.sep, '.'))
 
     def run(self):
         '''
@@ -633,6 +655,7 @@ class Operation():
                 return
 
         self.executor.run(self)
+
 
 class Planner():
     '''
@@ -667,6 +690,7 @@ class Planner():
         # FIXME: this syntax might be difficult to under stand.
         #        rewrite more readable way.
         __m = []
+
         def __set(list):
             '''Remember the current state '''
             __m.append(len(list))
@@ -774,6 +798,7 @@ class Planner():
         for final_node in final_group.sorted(reverse=True):
             final_node.accept(self)
 
+
 class Plan(list):
     '''
     List of operation objects.
@@ -811,16 +836,16 @@ class Plan(list):
         return '1..{0:d}'.format(self.num_operations())
 
     def succeeded_oparations(self):
-        return filter(lambda o : o.status == OpState.SUCCEEDED, self)
+        return filter(lambda o: o.status == OpState.SUCCEEDED, self)
 
     def failed_oparations(self):
-        return filter(lambda o : o.status == OpState.FAILED, self)
+        return filter(lambda o: o.status == OpState.FAILED, self)
 
     def skipped_operations(self):
-        return filter(lambda o : o.status  == OpState.SKIPPED, self)
+        return filter(lambda o: o.status == OpState.SKIPPED, self)
 
     def total_elapsed_time(self):
-        return sum([ o.elapsed for o in self ])
+        return sum([o.elapsed for o in self])
 
     def has_succeeded(self):
         return not len(self.failed_oparations()) > 0
@@ -840,14 +865,16 @@ class Plan(list):
             'failed           : {2:d}\n'
             'skipped          : {3:d}\n'
             'time taken [sec] : {4:.0f}\n'
-            ).format(self.num_operations(),
-                    len(self.succeeded_oparations()),
-                    len(self.failed_oparations()),
-                    len(self.skipped_operations()),
-                    self.total_elapsed_time())
+            ).format(
+            self.num_operations(),
+            len(self.succeeded_oparations()),
+            len(self.failed_oparations()),
+            len(self.skipped_operations()),
+            self.total_elapsed_time())
 
         if world['randomize']:
-            table += ('random seed      : {0:d}\n'
+            table += (
+                'random seed      : {0:d}\n'
                 .format(world['random seed']))
 
         console.write(table)
@@ -858,9 +885,10 @@ class Plan(list):
             console.write('\nFAILURE\n\n', 'red')
 
             # list of failed oparations
-            lines = [ '- {0:s}\n'.format(o)
-                        for o in self.failed_oparations() ]
-            console.write(''.join(lines)+ '\n')
+            lines = [
+                '- {0:s}\n'.format(o)
+                for o in self.failed_oparations()]
+            console.write(''.join(lines) + '\n')
 
 if __name__ == '__main__':
     world = Environment()
