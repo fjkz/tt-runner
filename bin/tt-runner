@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# coding: utf-8
 
 '''
 TT-Runner: A Test Scripts Runner
@@ -55,10 +56,18 @@ class MyParser(ArgumentParser):
             default=[d],
             help=('path to a directory saving the result. '
                   'default: {0}').format(d))
+
         parser.add_argument(
-            '--color',
+            '--tap',
             action='store_true',
-            help='color output')
+            default=False,
+            help='show result in TAP format')
+
+        parser.add_argument(
+            '--no-color',
+            action='store_true',
+            help='do not color output')
+
         parser.add_argument(
             '--no-change-dir',
             action='store_true',
@@ -174,7 +183,13 @@ class Environment(dict):
 
         self['root dir'] = os.path.abspath(args.PATH[0])
         self['output dir'] = os.path.abspath(args.output[0])
-        self['color output'] = args.color
+
+        if args.tap is True:
+            self['format'] = 'TAP'
+        else:
+            self['format'] = 'pretty'
+
+        self['color output'] = not args.no_color
         self['change dir'] = not args.no_change_dir
 
         ## Quality options
@@ -449,7 +464,7 @@ class Tree():
                     befores, afters, inits, finals)
 
 
-class Console():
+class Printer():
     __color_head = {
         'red': '\033[91m',
         'green': '\033[92m',
@@ -461,9 +476,9 @@ class Console():
         self.out = out
 
     def write(self, message, color=None):
-        end = '\033[0m'
         if world['color output'] and color:
-            message = Console.__color_head[color] + message + end
+            end = '\033[0m'
+            message = Printer.__color_head[color] + message + end
         self.out.write(message)
         self.out.flush()
 
@@ -492,12 +507,12 @@ class Executor():
             return
 
         if world['print log']:
-            console = Console(sys.stderr)
+            console = Printer(sys.stderr)
         else:
-            console = Console(NullFile())
+            console = Printer(NullFile())
 
         console.write(
-            '\n** run {0:s} **\n'.format(operation.relpath()),
+            '\n➤ {0:s}\n'.format(operation),
             'blue')
 
         if world['change dir']:
@@ -581,7 +596,14 @@ class Operation():
         self.status = OpState.NOT_DONE
         self.elapsed = 0.0
         self.message = ''
+
+        # unique number among all operations
         self.id_num = 0
+
+        # unique number among operations with the same file
+        # 1 or more value is set if a file associated to
+        # two or more operations.
+        self.serial_num = 0
 
         self.executor = Executor()
 
@@ -590,40 +612,24 @@ class Operation():
         assert id_num > 0
         self.id_num = id_num
 
+    def set_serial(self, serial_num):
+        assert self.serial_num == 0
+        assert serial_num > 0
+        self.serial_num = serial_num
+
     def relpath(self):
         return os.path.relpath(self.path, world['root dir'])
 
     def __str__(self):
-        return '{0:d} {1:s}'.format(self.id_num, self.relpath())
-
-    def tap_message(self):
-        '''
-        Return TAP formatted message
-        '''
-        if self.message != '':
-            # put '# ' at the front of each line
-            message = (
-                '\n' +
-                '\n'.join(
-                    ['# ' + line for line in self.message.splitlines()])
-                )
+        if self.serial_num > 0:
+            return '{0:s}.{1:d}'.format(
+                self.relpath(), self.serial_num)
         else:
-            message = ''
-
-        if self.status == OpState.SUCCEEDED:
-            return 'ok {0:s}{1:s}'.format(self, message)
-        elif self.status == OpState.FAILED:
-            return 'not ok {0:s}{1:s}'.format(self, message)
-        elif self.status == OpState.SKIPPED:
-            return 'ok {0:s} # SKIP{1:s}'.format(self, message)
-        else:
-            assert False
+            return self.relpath()
 
     def logfile_name(self):
-        assert self.id_num > 0
-        return '{0:d}.{1:s}.out'.format(
-            self.id_num,
-            self.relpath().replace(os.sep, '.'))
+        return '{0:s}.out'.format(
+            str(self).replace(os.sep, '.'))
 
     def run(self):
         '''
@@ -651,7 +657,9 @@ class Operation():
             assert depend_op.status != OpState.NOT_DONE
             if depend_op.status != OpState.SUCCEEDED:
                 self.status = OpState.SKIPPED
-                self.message = str(depend_op) + ' did not succeed.'
+                self.message = (
+                    'depending operation did not succeed: ' +
+                    str(depend_op))
                 return
 
         self.executor.run(self)
@@ -674,10 +682,21 @@ class Planner():
         tree.root_node.accept(self)
         assert len(self.depended_operations) == 0
 
+        # set id numbers
         id_num = 0
         for op in self.planned_operations:
             id_num += 1
             op.set_id(id_num)
+
+        # set serial numbers
+        for op in self.planned_operations:
+            c = filter(
+                lambda o: o.path == op.path, self.planned_operations)
+            assert len(c) > 0
+            if len(c) == 1:
+                continue
+            n = max(map(lambda o: o.serial_num, c))
+            op.set_serial(n + 1)
 
         return self.planned_operations
 
@@ -799,41 +818,166 @@ class Planner():
             final_node.accept(self)
 
 
+class PrettyFormat():
+    '''
+    Pretty format
+    '''
+
+    def __init__(self, printer):
+        self.printer = printer
+
+    def header(self, plan):
+        '''
+        No header
+        '''
+        pass
+
+    def case(self, op):
+        '''
+        Print pretty test case results
+        '''
+
+        if op.status == OpState.SUCCEEDED:
+            s = '✓ {0:s}\n'.format(op)
+            self.printer.write(s, 'green')
+        elif op.status == OpState.FAILED:
+            s = '✗ {0:s}\n'.format(op)
+            self.printer.write(s, 'red')
+        elif op.status == OpState.SKIPPED:
+            s = '− {0:s}\n'.format(op)
+            self.printer.write(s, 'yellow')
+        else:
+            assert False
+
+        if op.message != '':
+            message = (
+                '\n'.join(
+                    ['  ' + line for line in op.message.splitlines()])
+                + '\n'
+                )
+            self.printer.write(message)
+
+    def footer(self, plan):
+        '''
+        Print summury
+        '''
+
+        table = (
+            '\n'
+            'operations       : {0:d}\n'
+            'succeeded        : {1:d}\n'
+            'failed           : {2:d}\n'
+            ).format(
+            plan.num_operations(),
+            len(plan.succeeded_oparations()),
+            len(plan.failed_oparations()))
+
+        n = len(plan.skipped_operations())
+        if n > 0:
+            table += (
+                'skipped          : {0:d}\n'
+                .format(n))
+
+        table += (
+            'time taken [sec] : {0:.0f}\n'
+            .format(plan.total_elapsed_time()))
+
+        if world['randomize']:
+            table += (
+                'random seed      : {0:d}\n'
+                .format(world['random seed']))
+
+        self.printer.write(table)
+
+        if plan.has_succeeded():
+            self.printer.write('\nSUCCESS\n', 'green')
+        else:
+            self.printer.write('\nFAILURE\n', 'red')
+
+            # list of failed oparations
+            lines = [
+                '- {0:s}\n'.format(o)
+                for o in plan.failed_oparations()]
+            self.printer.write('\n' + ''.join(lines))
+
+
+class TAPFormat():
+    '''
+    TAP format
+    '''
+
+    def __init__(self, printer):
+        self.printer = printer
+
+    def header(self, plan):
+        '''
+        Print TAP header
+        '''
+        self.printer.write(
+            '1..{0:d}\n'.format(plan.num_operations()))
+
+    def case(self, op):
+        '''
+        Print TAP test case results
+        '''
+        if op.status == OpState.SUCCEEDED:
+            s = 'ok {0:d} {1:s}\n'.format(
+                op.id_num, op)
+        elif op.status == OpState.FAILED:
+            s = 'not ok {0:d} {1:s}\n'.format(
+                op.id_num, op)
+        elif op.status == OpState.SKIPPED:
+            s = 'ok {0:d} {1:s} # SKIP\n'.format(
+                op.id_num, op)
+        else:
+            assert False
+
+        self.printer.write(s)
+
+        if op.message != '':
+            # put '# ' at the front of each line
+            message = (
+                '\n'.join(
+                    ['# ' + line for line in op.message.splitlines()])
+                + '\n'
+                )
+            self.printer.write(message)
+
+    def footer(self, plan):
+        '''
+        No footer
+        '''
+        pass
+
+
 class Plan(list):
     '''
     List of operation objects.
     '''
 
-    def run(self):
+    def run(self, dest_formatters):
         '''
-        Run the operations
+        Run the operations and put the result to destination formatters
         '''
 
-        console = Console(sys.stdout)
-        tapfile = os.path.join(world['output dir'], 'result.txt')
-        with open(tapfile, 'w') as f:
+        for d in dest_formatters:
+            d.header(self)
 
-            line = self.tap_header() + '\n'
-            console.write(line, 'green')
-            f.write(line)
+        # For each operations
+        for op in self:
+            op.run()
 
-            # For each operations
-            for op in self:
-                op.run()
+            for d in dest_formatters:
+                d.case(op)
 
-                # print result
-                msg = op.tap_message() + '\n'
-                console.write(msg, OpState.color(op.status))
-                f.write(msg)
+            if world['stop on failure'] and op.status == OpState.FAILED:
+                world['skip all'] = True
 
-                if world['stop on failure'] and op.status == OpState.FAILED:
-                    world['skip all'] = True
+        for d in dest_formatters:
+            d.footer(self)
 
     def num_operations(self):
         return len(self)
-
-    def tap_header(self):
-        return '1..{0:d}'.format(self.num_operations())
 
     def succeeded_oparations(self):
         return filter(lambda o: o.status == OpState.SUCCEEDED, self)
@@ -850,53 +994,26 @@ class Plan(list):
     def has_succeeded(self):
         return not len(self.failed_oparations()) > 0
 
-    def summarize(self):
-        '''
-        Print the summary of operations.
-        Return False if one or more operations are failed.
-        '''
-
-        console = Console(sys.stderr)
-
-        table = (
-            '---\n'
-            'operations       : {0:d}\n'
-            'succeeded        : {1:d}\n'
-            'failed           : {2:d}\n'
-            'skipped          : {3:d}\n'
-            'time taken [sec] : {4:.0f}\n'
-            ).format(
-            self.num_operations(),
-            len(self.succeeded_oparations()),
-            len(self.failed_oparations()),
-            len(self.skipped_operations()),
-            self.total_elapsed_time())
-
-        if world['randomize']:
-            table += (
-                'random seed      : {0:d}\n'
-                .format(world['random seed']))
-
-        console.write(table)
-
-        if self.has_succeeded():
-            console.write('\nSUCCESS\n\n', 'green')
-        else:
-            console.write('\nFAILURE\n\n', 'red')
-
-            # list of failed oparations
-            lines = [
-                '- {0:s}\n'.format(o)
-                for o in self.failed_oparations()]
-            console.write(''.join(lines) + '\n')
 
 if __name__ == '__main__':
     world = Environment()
     world.setup()
     tree = Tree(world['root dir'])
     plan = Planner().create_plan(tree)
-    plan.run()
-    plan.summarize()
+
+    result_file = os.path.join(world['output dir'], 'result.txt')
+    with open(result_file, 'w') as f:
+        result_printer = TAPFormat(Printer(f))
+
+        console = Printer(sys.stdout)
+        if world['format'] == 'pretty':
+            console_printer = PrettyFormat(console)
+        elif world['format'] == 'TAP':
+            console_printer = TAPFormat(console)
+
+        plan.run(
+            [result_printer,
+             console_printer])
 
     if plan.has_succeeded():
         sys.exit(0)

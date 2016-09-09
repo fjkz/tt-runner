@@ -10,15 +10,15 @@ create_failing_test ${WORKDIR}/before.sh
 create_succeeding_test ${WORKDIR}/after.sh
 
 set +e
-OUT=$(tt-runner ${WORKDIR})
+OUT=$(tt-runner ${WORKDIR} --tap)
 set -e
 
 [[ ${OUT} == "1..6
-not ok 1 before.sh
+not ok 1 before.sh.1
 ok 2 test1.sh # SKIP
-# 1 before.sh did not succeed.
-ok 3 after.sh
-not ok 4 before.sh
+# depending operation did not succeed: before.sh.1
+ok 3 after.sh.1
+not ok 4 before.sh.2
 ok 5 test2.sh # SKIP
-# 4 before.sh did not succeed.
-ok 6 after.sh" ]]
+# depending operation did not succeed: before.sh.2
+ok 6 after.sh.2" ]]

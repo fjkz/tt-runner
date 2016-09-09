@@ -18,34 +18,38 @@ sample/test-simple
 
 テストスイートのルートディレクトリを指定して `tt-runner` コマンドを実行すると, テストスイートが実行されます. `tt-runner` コマンドは, すべてのスクリプトの実行に成功した場合にはステータスコード `0` で終了し, 失敗したスクリプトがあった場合にはステータスコード `1` で終了します.
 
-テストの結果はコンソールに出力されます. 標準出力は TAP に従います.
+テストの結果はコンソールに出力されます.
 
 ```
 $ tt-runner sample/test-simple
-1..2
-not ok 1 test_not_ok.sh
-ok 2 test_ok.sh
----
+✗ test_not_ok.sh
+✓ test_ok.sh
+
 operations       : 2
 succeeded        : 1
 failed           : 1
-skipped          : 0
 time taken [sec] : 0
 
 FAILURE
 
-- 1 test_not_ok.sh
-
+- test_not_ok.sh
 ```
 
-`--color` オプションを付与すると, コンソール出力が着色されます.
+`--tap` オプションを指定すると、TAP (Test Anything Protocol) フォーマットで結果を出力します。
+
+```
+$ tt-runner sample/test-simple --tap
+1..2
+not ok 1 test_not_ok.sh
+ok 2 test_ok.sh
+```
 
 テストの結果は, `-o` オプションで指定されたディレクトリにも出力されます. `result.txt` は TAP フォーマットのテスト結果です. `*.out` はそれぞれのスクリプトの標準出力および標準エラー出力です.
 
 ```
-$ tt-runner sample/test-simple -o result 1>/dev/null 2>/dev/null
+$ tt-runner sample/test-simple -o result > /dev/null
 $ ls result
-1.test_not_ok.sh.out  2.test_ok.sh.out  result.txt
+result.txt  test_not_ok.sh.out  test_ok.sh.out
 ```
 
 ### テストスクリプトの書き方
@@ -113,18 +117,24 @@ sample/test-before-after
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-before-after 2>/dev/null
-1..10
-ok 1 before1.sh
-ok 2 before2.sh
-ok 3 test1.sh
-ok 4 after2.sh
-ok 5 after1.sh
-ok 6 before1.sh
-ok 7 before2.sh
-ok 8 test2.sh
-ok 9 after2.sh
-ok 10 after1.sh
+$ tt-runner sample/test-before-after
+✓ before1.sh.1
+✓ before2.sh.1
+✓ test1.sh
+✓ after2.sh.1
+✓ after1.sh.1
+✓ before1.sh.2
+✓ before2.sh.2
+✓ test2.sh
+✓ after2.sh.2
+✓ after1.sh.2
+
+operations       : 10
+succeeded        : 10
+failed           : 0
+time taken [sec] : 0
+
+SUCCESS
 ```
 
 なお, 前処理が失敗した場合には, テストはスキップされます.
@@ -148,14 +158,20 @@ sample/test-init-final
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-init-final 2>/dev/null
-1..6
-ok 1 init1.sh
-ok 2 init2.sh
-ok 3 test1.sh
-ok 4 test2.sh
-ok 5 final2.sh
-ok 6 final1.sh
+$ tt-runner sample/test-init-final
+✓ init1.sh
+✓ init2.sh
+✓ test1.sh
+✓ test2.sh
+✓ final2.sh
+✓ final1.sh
+
+operations       : 6
+succeeded        : 6
+failed           : 0
+time taken [sec] : 0
+
+SUCCESS
 ```
 
 ### テストスイートのテスト

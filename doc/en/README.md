@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
 
-*TT-Runner* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily. The testing result is output with [TAP (Test Anything Protocol)](http://testanything.org/).
+*TT-Runner* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily.
 
 ## Usage
 
@@ -18,34 +18,38 @@ sample/test-simple
 
 We can run them by invoking `tt-runner` with the root path of the test suite. If all test scripts succeed, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
 
-The result is printed on the console. The standard out obeys TAP.
+The result is printed on the console.
 
 ```
 $ tt-runner sample/test-simple
-1..2
-not ok 1 test_not_ok.sh
-ok 2 test_ok.sh
----
+✗ test_not_ok.sh
+✓ test_ok.sh
+
 operations       : 2
 succeeded        : 1
 failed           : 1
-skipped          : 0
 time taken [sec] : 0
 
 FAILURE
 
-- 1 test_not_ok.sh
-
+- test_not_ok.sh
 ```
 
-If we set `--color` option, the console output is colored.
-
-The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
+The result is printed with TAP (Test Anything Protocol) if `--tap` option is set.
 
 ```
-$ tt-runner sample/test-simple -o result 1>/dev/null 2>/dev/null
+$ tt-runner sample/test-simple --tap
+1..2
+not ok 1 test_not_ok.sh
+ok 2 test_ok.sh
+```
+
+The result is also output to the directory specified with `-o` option. `result.txt` is the TAP formatted result. `*.out` are the standard out and the standard error of each script.
+
+```
+$ tt-runner sample/test-simple -o result > /dev/null
 $ ls result
-1.test_not_ok.sh.out  2.test_ok.sh.out  result.txt
+result.txt  test_not_ok.sh.out  test_ok.sh.out
 ```
 
 ### Writing Scripts
@@ -111,18 +115,24 @@ sample/test-before-after
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-before-after 2>/dev/null
-1..10
-ok 1 before1.sh
-ok 2 before2.sh
-ok 3 test1.sh
-ok 4 after2.sh
-ok 5 after1.sh
-ok 6 before1.sh
-ok 7 before2.sh
-ok 8 test2.sh
-ok 9 after2.sh
-ok 10 after1.sh
+$ tt-runner sample/test-before-after
+✓ before1.sh.1
+✓ before2.sh.1
+✓ test1.sh
+✓ after2.sh.1
+✓ after1.sh.1
+✓ before1.sh.2
+✓ before2.sh.2
+✓ test2.sh
+✓ after2.sh.2
+✓ after1.sh.2
+
+operations       : 10
+succeeded        : 10
+failed           : 0
+time taken [sec] : 0
+
+SUCCESS
 ```
 
 Note that when a preconditioning operation fails the following tests are skipped.
@@ -145,14 +155,20 @@ sample/test-init-final
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-init-final 2>/dev/null
-1..6
-ok 1 init1.sh
-ok 2 init2.sh
-ok 3 test1.sh
-ok 4 test2.sh
-ok 5 final2.sh
-ok 6 final1.sh
+$ tt-runner sample/test-init-final
+✓ init1.sh
+✓ init2.sh
+✓ test1.sh
+✓ test2.sh
+✓ final2.sh
+✓ final1.sh
+
+operations       : 6
+succeeded        : 6
+failed           : 0
+time taken [sec] : 0
+
+SUCCESS
 ```
 
 ## Testing of Test Suites
