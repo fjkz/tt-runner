@@ -220,7 +220,9 @@ class Environment(dict):
                              for n in args.skip]
 
         for p in self['skip list'] + self['only list']:
-            assert os.path.exists(p), p + ' does not exists'
+            if not os.path.exists(p):
+                raise MyError("No such file or directory: '{0}'"
+                              .format(os.path.relpath(p)))
 
         ## Regex options
 
@@ -240,10 +242,16 @@ class Environment(dict):
         d = default['output dir']
         if self['output dir'] == d:
             if os.path.lexists(d):
-                shutil.rmtree(d)
+                try:
+                    shutil.rmtree(d)
+                except OSError as e:
+                    raise MyError(e)
 
         # create the output directory
-        os.makedirs(self['output dir'])
+        try:
+            os.makedirs(self['output dir'])
+        except OSError as e:
+            raise MyError(e)
 
         # set environment variables in the process
         os.environ['TT_RUNNER_EXEC_DIR'] = os.getcwd()
@@ -371,7 +379,10 @@ class Tree():
         '''
         Create tree
         '''
-        self.root_node = self.__create_nodes(root_path)
+        try:
+            self.root_node = self.__create_nodes(root_path)
+        except OSError as e:
+            raise MyError(e)
 
     class StringFormatter():
         def get_string(self, tree):
@@ -1010,7 +1021,15 @@ class Plan(list):
         return not len(self.failed_oparations()) > 0
 
 
-if __name__ == '__main__':
+class MyError(Exception):
+    '''
+    Error to be handled
+    '''
+    pass
+
+
+def main():
+    global world
     world = Environment()
     world.setup()
     tree = Tree(world['root dir'])
@@ -1031,6 +1050,14 @@ if __name__ == '__main__':
              console_printer])
 
     if plan.has_succeeded():
-        sys.exit(0)
+        return 0
     else:
-        sys.exit(1)
+        return 1
+
+if __name__ == '__main__':
+    try:
+        status = main()
+        sys.exit(status)
+    except MyError as e:
+        print >> sys.stderr, 'tt-runner:', e
+        sys.exit(2)
