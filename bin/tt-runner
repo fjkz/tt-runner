@@ -106,18 +106,18 @@ class MyParser(ArgumentParser):
             help='skip all operations')
         skip_group.add_argument(
             '--only',
-            metavar='N',
+            metavar='NAME',
             nargs='+',
-            type=int,
+            type=str,
             default=[],
-            help='run only specified operations')
+            help='run only specified scripts')
         skip_group.add_argument(
             '--skip',
-            metavar='N',
+            metavar='NAME',
             nargs='+',
-            type=int,
+            type=str,
             default=[],
-            help='skip specified operations')
+            help='skip specified scripts')
 
         prefix_group = parser.add_argument_group(
             'regular expressions for classifying node types')
@@ -212,8 +212,15 @@ class Environment(dict):
         # note: can be changed in running
         self['skip all'] = args.skip_all
 
-        self['only list'] = args.only
-        self['skip list'] = args.skip
+        # absolute paths of only-run files or directory
+        self['only list'] = [os.path.join(self['root dir'], n)
+                             for n in args.only]
+        # absolute paths of skipped files
+        self['skip list'] = [os.path.join(self['root dir'], n)
+                             for n in args.skip]
+
+        for p in self['skip list'] + self['only list']:
+            assert os.path.exists(p), p + ' does not exists'
 
         ## Regex options
 
@@ -643,14 +650,22 @@ class Operation():
             self.status = OpState.SKIPPED
             return
 
-        if self.id_num in world['skip list']:
-            self.status = OpState.SKIPPED
-            return
+        # skip if the path of the operation is
+        # under the directory in skip list
+        for skip_file in world['skip list']:
+            if self.path.startswith(skip_file):
+                self.status = OpState.SKIPPED
+                return
 
-        if (len(world['only list']) > 0 and
-                self.id_num not in world['only list']):
-            self.status = OpState.SKIPPED
-            return
+        # skip if the path of the operation is
+        # under the directory in only list
+        if len(world['only list']) > 0:
+            for only_file in world['only list']:
+                if self.path.startswith(only_file):
+                    break
+            else:
+                self.status = OpState.SKIPPED
+                return
 
         # Skip if depending operation did not succeed.
         for depend_op in self.depends:

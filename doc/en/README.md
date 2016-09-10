@@ -177,9 +177,9 @@ The following command line options are available for testing of test suites.
 
 - `--print-log` option prints output of running scripts on the console.
 - `--stop-on-failure` option skips remaining operations if an operation fails. The postconditioning is also skipped then.
-- `--skip-all` option skips all operations. We can know the execution plan and the ID number of each operation.
-- `--only` option runs only operations that have specified ID numbers. Note that preconditioning and postconditioning are not automatically executed.
-- `--skip` option skips operations that have specified ID numbers.
+- `--skip-all` option skips all operations. We can know the execution plan.
+- `--only` option runs only specfied scripts. We can also specify directory names. Note that preconditioning and postconditioning operations are not automatically executed.
+- `--skip` option skips operations that have specified scripts. We can also specify directory names.
 
 ## Improvement of Test Suites
 
