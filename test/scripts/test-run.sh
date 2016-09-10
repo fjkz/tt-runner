@@ -17,5 +17,5 @@ set -e
 ok 1 run1.sh
 ok 2 run2.sh
 not ok 3 run3.sh
-ok 4 run4.sh # SKIP
+ok 4 # SKIP run4.sh
 # depending operation did not succeed: run3.sh" ]]

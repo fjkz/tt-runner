@@ -16,5 +16,5 @@ set -e
 [[ ${OUT} == "1..4
 ok 1 test1.sh
 not ok 2 test2.sh
-ok 3 test3.sh # SKIP
-ok 4 test4.sh # SKIP" ]]
+ok 3 # SKIP test3.sh
+ok 4 # SKIP test4.sh" ]]

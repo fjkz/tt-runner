@@ -17,8 +17,8 @@ set -e
 
 [[ ${OUT} == "1..4
 not ok 1 init.sh
-ok 2 test1.sh # SKIP
+ok 2 # SKIP test1.sh
 # depending operation did not succeed: init.sh
-ok 3 test2.sh # SKIP
+ok 3 # SKIP test2.sh
 # depending operation did not succeed: init.sh
 ok 4 final.sh" ]]

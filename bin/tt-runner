@@ -927,7 +927,7 @@ class TAPFormat():
             s = 'not ok {0:d} {1:s}\n'.format(
                 op.id_num, op)
         elif op.status == OpState.SKIPPED:
-            s = 'ok {0:d} {1:s} # SKIP\n'.format(
+            s = 'ok {0:d} # SKIP {1:s}\n'.format(
                 op.id_num, op)
         else:
             assert False
