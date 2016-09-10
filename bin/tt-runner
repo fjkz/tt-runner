@@ -1055,10 +1055,6 @@ def main():
         return 1
 
 if __name__ == '__main__':
-    if sys.version_info < (2, 7) or sys.version_info > (3, 0):
-        sys.stderr.write('tt-runner: Python 2.7 is required\n')
-        sys.exit(2)
-
     try:
         status = main()
         sys.exit(status)
