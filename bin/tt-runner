@@ -976,31 +976,49 @@ class TAPFormat():
         pass
 
 
+class MultiFormat():
+    '''
+    Write with multiple format
+    '''
+
+    def __init__(self, printer_list):
+        self.printer_list = printer_list
+
+    def header(self, plan):
+        for printer in self.printer_list:
+            printer.header(plan)
+
+    def case(self, op):
+        for printer in self.printer_list:
+            printer.case(op)
+
+    def footer(self, plan):
+        for printer in self.printer_list:
+            printer.footer(plan)
+
+
 class Plan(list):
     '''
     List of operation objects.
     '''
 
-    def run(self, dest_formatters):
+    def run(self, dest_formatter):
         '''
         Run the operations and put the result to destination formatters
         '''
 
-        for d in dest_formatters:
-            d.header(self)
+        dest_formatter.header(self)
 
         # For each operations
         for op in self:
             op.run()
 
-            for d in dest_formatters:
-                d.case(op)
+            dest_formatter.case(op)
 
             if world['stop on failure'] and op.status == OpState.FAILED:
                 world['skip all'] = True
 
-        for d in dest_formatters:
-            d.footer(self)
+        dest_formatter.footer(self)
 
     def num_operations(self):
         return len(self)
@@ -1045,9 +1063,8 @@ def main():
         elif world['format'] == 'TAP':
             console_printer = TAPFormat(console)
 
-        plan.run(
-            [result_printer,
-             console_printer])
+        printer = MultiFormat([console_printer, result_printer])
+        plan.run(printer)
 
     if plan.has_succeeded():
         return 0
