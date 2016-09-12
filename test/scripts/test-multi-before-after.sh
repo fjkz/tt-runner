@@ -17,8 +17,8 @@ create_succeeding_test ${WORKDIR}/final2.sh
 
 OUT=$(tt-runner ${WORKDIR} --tap)
 
-[[ ${OUT} == "1..14
-ok 1 init1.sh
+[[ ${OUT} == \
+"ok 1 init1.sh
 ok 2 init2.sh
 ok 3 before1.sh.1
 ok 4 before2.sh.1
@@ -31,4 +31,5 @@ ok 10 test2.sh
 ok 11 after2.sh.2
 ok 12 after1.sh.2
 ok 13 final2.sh
-ok 14 final1.sh" ]]
+ok 14 final1.sh
+1..14" ]]

@@ -15,7 +15,7 @@ import shutil
 from signal import SIGINT
 from subprocess import Popen, PIPE, STDOUT
 import sys
-import time
+from time import time
 
 # global configuration object
 world = None
@@ -23,12 +23,13 @@ world = None
 # default configuration values
 default = {
     'output dir': '/tmp/tt-runner',
-    'test regex': 'test',
-    'run regex': 'run',
-    'before regex': 'before',
-    'after regex': 'after',
-    'init regex': 'init',
-    'final regex': 'final',
+    'test regex': '^test',
+    'run regex': '^run',
+    'before regex': '^before',
+    'after regex': '^after',
+    'init regex': '^init',
+    'final regex': '^final',
+    'tap regex': r'^.+\.(bats|t)$',
     }
 
 
@@ -128,7 +129,7 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with test nodes. '
+            help=('regex matching with test-nodes. '
                   'default: {0}').format(d))
         d = default['run regex']
         prefix_group.add_argument(
@@ -136,7 +137,7 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with run nodes. '
+            help=('regex matching with run-nodes. '
                   'default: {0}').format(d))
         d = default['before regex']
         prefix_group.add_argument(
@@ -144,7 +145,7 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with before nodes. '
+            help=('regex matching with before-nodes. '
                   'default: {0}').format(d))
         d = default['after regex']
         prefix_group.add_argument(
@@ -152,7 +153,7 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with after nodes. '
+            help=('regex matching with after-nodes. '
                   'default: {0}').format(d))
         d = default['init regex']
         prefix_group.add_argument(
@@ -160,7 +161,7 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with init nodes. '
+            help=('regex matching with init-nodes. '
                   'default: {0}').format(d))
         d = default['final regex']
         prefix_group.add_argument(
@@ -168,7 +169,19 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with final nodes. '
+            help=('regex matching with final-nodes. '
+                  'default: {0}').format(d))
+
+        protocol_group = parser.add_argument_group(
+            'regular expressions for classifying output protocols')
+        d = default['tap regex']
+        protocol_group.add_argument(
+            '--tap-regex',
+            metavar='RE',
+            nargs=1,
+            default=[d],
+            help=('regex matching with script files that output '
+                  'is formatted in Test Anything Protocol. '
                   'default: {0}').format(d))
 
         return parser
@@ -234,6 +247,8 @@ class Environment(dict):
         self['init regex'] = re.compile(args.init_regex[0])
         self['final regex'] = re.compile(args.final_regex[0])
 
+        self['tap regex'] = re.compile(args.tap_regex[0])
+
     def setup(self):
         '''
         Set up environment.
@@ -260,6 +275,39 @@ class Environment(dict):
         os.environ['TT_RUNNER_OUTPUT_DIR'] = self['output dir']
 
 
+class Path():
+    '''
+    Path string
+    '''
+    def __init__(self, path_string):
+        self.path_string = os.path.abspath(path_string)
+
+    def __cmp__(self, other):
+        return cmp(self.path_string, other.path_string)
+
+    def __str__(self):
+        return os.path.relpath(self.path_string, world["root dir"])
+
+    def abspath(self):
+        return self.path_string
+
+    def normalized(self):
+        return str(self)
+
+    def basename(self):
+        return os.path.basename(self.path_string)
+
+    def dirname(self):
+        return os.path.dirname(self.path_string)
+
+    def is_executable(self):
+        return os.access(self.path_string, os.R_OK | os.X_OK)
+
+    def startswith(self, path_string):
+        assert os.path.isabs(path_string)
+        return self.path_string.startswith(path_string)
+
+
 class Node():
     '''
     A node of the scripts tree, a directory.
@@ -271,8 +319,7 @@ class Node():
             befores, afters,
             inits, finals):
 
-        # absolute path to the file directory
-        self.path = os.path.abspath(path)
+        self.path = path
 
         # child nodes
         self.tests = tests
@@ -283,13 +330,13 @@ class Node():
         self.finals = finals
 
     def __str__(self):
-        return os.path.relpath(self.path, world["root dir"])
+        return str(self.path)
 
     def name(self):
         '''
         Get the directory or file name, not the path.
         '''
-        return os.path.basename(self.path)
+        return self.path.basename()
 
     def is_empty(self):
         if (self.tests and self.runs and
@@ -303,14 +350,19 @@ class Node():
         visitor.visit_node(self)
 
 
-class Leaf(Node):
+class Leaf():
     '''
     A script file
     '''
 
     def __init__(self, path):
-        # absolute path to the file
-        self.path = os.path.abspath(path)
+        self.path = path
+
+    def __str__(self):
+        return str(self.path)
+
+    def name(self):
+        return self.path.basename()
 
     def is_empty(self):
         return False
@@ -444,7 +496,7 @@ class Tree():
         '''
 
         if os.path.isfile(path):
-            return Leaf(path)
+            return Leaf(Path(path))
 
         def __create_child_nodes(childs, regex):
             names = filter(lambda n: regex.match(n), childs)
@@ -479,7 +531,7 @@ class Tree():
         nodes = __create_child_nodes(childs, world['final regex'])
         finals.extend(nodes)
 
-        return Node(path, tests, runs,
+        return Node(Path(path), tests, runs,
                     befores, afters, inits, finals)
 
 
@@ -511,19 +563,51 @@ class NullFile():
         pass
 
 
-class Executor():
+class CaseResult():
     '''
-    A runner for simple executable files
+    Result of test case
     '''
+    (
+        SUCCEEDED,
+        FAILED,
+        SKIPPED,
+    ) = range(3)
 
-    def run(self, operation):
+    def __init__(self, status, description, message):
+        assert (status == self.SUCCEEDED or
+                status == self.FAILED or
+                status == self.SKIPPED)
 
-        # Skip if the file is not executable.
-        if not os.access(operation.path, os.R_OK | os.X_OK):
-            operation.status = OpState.SKIPPED
-            operation.message = '{0} is not executable.'.format(
-                operation.relpath())
-            return
+        self.status = status
+        self.description = description
+        self.message = message
+
+
+class Protocol():
+    __metaclass__ = ABCMeta
+
+    def set_format(self, out_format):
+        self.out_format = out_format
+
+    def set_operation_name(self, name):
+        self.opname = name
+
+    @abstractmethod
+    def decode_stdout(self, iterable_lines):
+        pass
+
+    @abstractmethod
+    def decode_statuscode(self, statuscode):
+        pass
+
+    @abstractmethod
+    def get_results(self):
+        pass
+
+
+class StandardProtocol(Protocol):
+
+    def decode_stdout(self, iterable_lines):
 
         if world['print log']:
             console = Printer(sys.stderr)
@@ -531,76 +615,121 @@ class Executor():
             console = Printer(NullFile())
 
         console.write(
-            '\n➤ {0:s}\n'.format(operation),
+            '\n➤ {0:s}\n'.format(self.opname),
             'blue')
 
-        if world['change dir']:
-            # Change the working directory to the directory where
-            # the script exists.
-            os.chdir(os.path.dirname(operation.path))
+        for line in iterable_lines:
+            console.write(line)
 
-        start = time.time()
+    def decode_statuscode(self, statuscode):
+        '''
+        The operation fails if it returns non-zero status code
+        '''
+        if statuscode == 0:
+            status = CaseResult.SUCCEEDED
+        else:
+            status = CaseResult.FAILED
 
-        process = None
-        try:
-            process = Popen(
-                [operation.path],
-                stdout=PIPE,
-                stderr=STDOUT)
-            logfile = os.path.join(
-                world['output dir'], operation.logfile_name())
+        result = CaseResult(status, self.opname, '')
+        self.out_format.print_case_result(result)
+        self.results = [result]
 
-            # write stdout and stderr of the operation
-            # to stderr and logfile
-            with process.stdout, open(logfile, 'wb') as f:
-                for line in iter(process.stdout.readline, b''):
-                    f.write(line)
-                    console.write(line)
+    def get_results(self):
+        return self.results
 
-            process.wait()
 
-        except OSError as e:
-            # For the case when the script at the path has not shebang.
-            operation.status = OpState.FAILED
-            operation.message = (
-                'OSError: ' + str(e) + '\n'
-                'Is the shebang correct?')
+class TestAnythingProtocol(Protocol):
+    '''
+    Test Anything Protocol (TAP)
+    '''
+
+    RE_PLAN = re.compile(r'^1\.\.(\d+)(.*)$')
+    RE_OK = re.compile(r'^ok\s+(\d+)(\s+-)?\s+(.*)$')
+    RE_NOT_OK = re.compile(r'^not\sok\s+(\d+)(\s+-)?\s+(.*)$')
+    RE_SKIP = re.compile(r'^ok\s+(\d+)(\s+-)?\s+(# (SKIP|skip|Skip))\s+(.*)$')
+    RE_COMMENT = re.compile(r'^#\s(.*)$')
+    RE_BAILOUT = re.compile(r'^Bail out!(.*)$')
+
+    def __init__(self):
+        self.results = []
+        self.failed = False
+        self.bailouted = False
+
+    def decode_stdout(self, iterable_lines):
+
+        for line in iterable_lines:
+            if self.RE_PLAN.match(line):
+                continue
+
+            if self.RE_SKIP.match(line):
+                result = CaseResult(
+                    CaseResult.SKIPPED,
+                    self.opname + ': ' + self.RE_SKIP.match(line).group(5),
+                    '')
+
+                self.out_format.print_case_result(result)
+                self.results.append(result)
+                self.failed = True
+                continue
+
+            if self.RE_OK.match(line):
+                result = CaseResult(
+                    CaseResult.SUCCEEDED,
+                    self.opname + ': ' + self.RE_OK.match(line).group(3),
+                    '')
+
+                self.out_format.print_case_result(result)
+                self.results.append(result)
+                continue
+
+            if self.RE_NOT_OK.match(line):
+                result = CaseResult(
+                    CaseResult.FAILED,
+                    self.opname + ': ' + self.RE_NOT_OK.match(line).group(3),
+                    '')
+
+                self.out_format.print_case_result(result)
+                self.results.append(result)
+                self.failed = True
+                continue
+
+            if self.RE_COMMENT.match(line):
+                self.out_format.print_message_line(
+                    self.RE_COMMENT.match(line).group(1))
+                continue
+
+            if self.RE_BAILOUT.match(line):
+                result = CaseResult(
+                    CaseResult.FAILED,
+                    self.opname,
+                    line)
+
+                self.out_format.print_case_result(result)
+                self.results.append(result)
+                self.bailouted = True
+                return
+
+    def decode_statuscode(self, statuscode):
+        '''
+        Print failure only if the script exits with
+        a non-zero status code but all tests succeed.
+        '''
+        if self.bailouted:
+            return
+        if self.failed:
+            return
+        if statuscode == 0:
             return
 
-        except KeyboardInterrupt as i:
-            process.send_signal(SIGINT)
-            process.wait()
-            operation.message = 'KeyboardInterrupt'
+        result = CaseResult(
+            CaseResult.FAILED,
+            self.opname,
+            '')
+        self.out_format.print_case_result(result)
+        self.results.append(result)
 
-        end = time.time()
-        operation.elapsed = end - start
-
-        if process.returncode != 0:
-            operation.status = OpState.FAILED
-        else:
-            operation.status = OpState.SUCCEEDED
-
-
-class OpState():
-    '''
-    Operation state
-    '''
-    (
-        NOT_DONE,
-        SUCCEEDED,
-        FAILED,
-        SKIPPED,
-    ) = range(4)
-
-    @staticmethod
-    def color(status):
-        if status == OpState.SUCCEEDED:
-            return 'green'
-        if status == OpState.FAILED:
-            return 'red'
-        if status == OpState.SKIPPED:
-            return 'yellow'
-        assert False
+    def get_results(self):
+        return self.results
 
 
 class Operation():
@@ -608,13 +737,13 @@ class Operation():
     A unit of testing. Represent each executable script file.
     '''
 
-    def __init__(self, path, depends):
+    def __init__(self, path, depends, protocol):
         self.path = path
         self.depends = copy(depends)
 
-        self.status = OpState.NOT_DONE
+        self.has_done = False
         self.elapsed = 0.0
-        self.message = ''
+        self.case_results = None
 
         # unique number among all operations
         self.id_num = 0
@@ -624,7 +753,7 @@ class Operation():
         # two or more operations.
         self.serial_num = 0
 
-        self.executor = Executor()
+        self.protocol = protocol
 
     def set_id(self, id_num):
         assert self.id_num == 0
@@ -636,37 +765,64 @@ class Operation():
         assert serial_num > 0
         self.serial_num = serial_num
 
-    def relpath(self):
-        return os.path.relpath(self.path, world['root dir'])
-
     def __str__(self):
         if self.serial_num > 0:
             return '{0:s}.{1:d}'.format(
-                self.relpath(), self.serial_num)
+                self.path, self.serial_num)
         else:
-            return self.relpath()
+            return str(self.path)
 
     def logfile_name(self):
         return '{0:s}.out'.format(
             str(self).replace(os.sep, '.'))
 
-    def run(self):
+    def has_succeeded(self):
+        '''
+        Return True if all test cases have succeeded
+        '''
+        for result in self.case_results:
+            if result.status != CaseResult.SUCCEEDED:
+                return False
+
+        return True
+
+    def has_failed(self):
+        '''
+        Return True if one or more test cases have failed
+        (not succeeded and notskipped)
+        '''
+        for result in self.case_results:
+            if result.status == CaseResult.FAILED:
+                return True
+
+        return False
+
+    def run(self, out_format):
         '''
         Exec this operation.
-        The result is set into field variables.
+        The result is printed to out_format and set into field variables.
         '''
         assert self.id_num > 0
-        assert self.status == OpState.NOT_DONE
+        assert not self.has_done
+        assert self.case_results is None
+
+        def abort(status, message):
+            result = CaseResult(status, str(self), message)
+
+            out_format.print_case_result(result)
+
+            self.case_results = [result]
+            self.has_done = True
 
         if world['skip all']:
-            self.status = OpState.SKIPPED
+            abort(CaseResult.SKIPPED, '')
             return
 
         # skip if the path of the operation is
         # under the directory in skip list
         for skip_file in world['skip list']:
             if self.path.startswith(skip_file):
-                self.status = OpState.SKIPPED
+                abort(CaseResult.SKIPPED, '')
                 return
 
         # skip if the path of the operation is
@@ -676,20 +832,84 @@ class Operation():
                 if self.path.startswith(only_file):
                     break
             else:
-                self.status = OpState.SKIPPED
+                abort(CaseResult.SKIPPED, '')
                 return
 
         # Skip if depending operation did not succeed.
         for depend_op in self.depends:
-            assert depend_op.status != OpState.NOT_DONE
-            if depend_op.status != OpState.SUCCEEDED:
-                self.status = OpState.SKIPPED
-                self.message = (
-                    'depending operation did not succeed: ' +
-                    str(depend_op))
+
+            assert depend_op.has_done
+
+            if not depend_op.has_succeeded():
+                message = (
+                    'depending operation did not succeed: {0:s}'
+                    .format(depend_op))
+                abort(CaseResult.SKIPPED, message)
                 return
 
-        self.executor.run(self)
+        # Failed if the file is not executable.
+        if not self.path.is_executable():
+            message = '{0:s} is not executable.'.format(self.path)
+            abort(CaseResult.FAILED, message)
+            return
+
+        if world['change dir']:
+            # Change the working directory to the directory where
+            # the script exists.
+            os.chdir(self.path.dirname())
+
+        start = time()
+
+        #results = self.executor.run(self, out_format)
+        self.protocol.set_format(out_format)
+        self.protocol.set_operation_name(str(self))
+
+        try:
+            process = Popen(
+                [self.path.abspath()],
+                stdout=PIPE,
+                stderr=STDOUT)
+
+            logfile = os.path.join(
+                world['output dir'], self.logfile_name())
+
+            # write stdout and stderr of the operation
+            # to stderr and logfile
+            with process.stdout, open(logfile, 'wb') as f:
+
+                def readline():
+                    line = process.stdout.readline()
+                    # write stdout to log file when read
+                    f.write(line)
+                    return line
+
+                iterator = iter(readline, b'')
+
+                self.protocol.decode_stdout(iterator)
+
+            process.wait()
+
+        except OSError as e:
+            # For the case when the script at the path has not shebang.
+            message = (
+                'OSError: ' + str(e) + '\n'
+                'Is the shebang correct?')
+            abort(CaseResult.FAILED, message)
+            return
+
+        except KeyboardInterrupt as i:
+            process.send_signal(SIGINT)
+            process.wait()
+            message = 'KeyboardInterrupt'
+            abort(CaseResult.FAILED, message)
+            return
+
+        self.protocol.decode_statuscode(process.returncode)
+        self.case_results = self.protocol.get_results()
+
+        end = time()
+        self.elapsed = end - start
+        self.has_done = True
 
 
 class Planner():
@@ -799,47 +1019,56 @@ class Planner():
         '''
         Add new operation object
         '''
-        operation = Operation(leaf.path, self.depended_operations)
+
+        if world['tap regex'].match(leaf.path.basename()):
+            protocol = TestAnythingProtocol()
+        else:
+            protocol = StandardProtocol()
+
+        operation = Operation(
+            leaf.path,
+            self.depended_operations,
+            protocol)
         self.planned_operations.append(operation)
         self.depended_operations.append(operation)
 
     def visit_test_group(self, test_group):
         '''
-        This planner do not do not visit test group
+        This planner do not do not visit test-group
         '''
         assert False
 
     def visit_run_group(self, run_group):
         '''
-        Visit run nodes in the sequential order
+        Visit run-nodes in the sequential order
         '''
         for run_node in run_group.sorted():
             run_node.accept(self)
 
     def visit_before_group(self, before_group):
         '''
-        Visit bofore nodes in the sequential order
+        Visit before-nodes in the sequential order
         '''
         for before_node in before_group.sorted():
             before_node.accept(self)
 
     def visit_after_group(self, after_group):
         '''
-        Visit bofore nodes in the reversed order
+        Visit after-nodes in the reversed order
         '''
         for after_node in after_group.sorted(reverse=True):
             after_node.accept(self)
 
     def visit_init_group(self, init_group):
         '''
-        Visit init nodes in the sequential order
+        Visit init-nodes in the sequential order
         '''
         for init_node in init_group.sorted():
             init_node.accept(self)
 
     def visit_final_group(self, final_group):
         '''
-        Visit final nodes in the sequential order
+        Visit final-nodes in the sequential order
         '''
         for final_node in final_group.sorted(reverse=True):
             final_node.accept(self)
@@ -854,6 +1083,10 @@ class Format:
 
     @abstractmethod
     def print_case_result(self, case_result):
+        pass
+
+    @abstractmethod
+    def print_message_line(self, line):
         pass
 
     @abstractmethod
@@ -875,30 +1108,33 @@ class PrettyFormat(Format):
         '''
         pass
 
-    def print_case_result(self, op):
+    def print_case_result(self, case_result):
         '''
-        Print pretty test case results
+        Print pretty test case result
         '''
 
-        if op.status == OpState.SUCCEEDED:
-            s = '✓ {0:s}\n'.format(op)
+        if case_result.status == CaseResult.SUCCEEDED:
+            s = '✓ {0:s}\n'.format(case_result.description)
             self.printer.write(s, 'green')
-        elif op.status == OpState.FAILED:
-            s = '✗ {0:s}\n'.format(op)
+        elif case_result.status == CaseResult.FAILED:
+            s = '✗ {0:s}\n'.format(case_result.description)
             self.printer.write(s, 'red')
-        elif op.status == OpState.SKIPPED:
-            s = '− {0:s}\n'.format(op)
+        elif case_result.status == CaseResult.SKIPPED:
+            s = '− {0:s}\n'.format(case_result.description)
             self.printer.write(s, 'yellow')
         else:
             assert False
 
-        if op.message != '':
+        if case_result.message != '':
             message = (
                 '\n'.join(
-                    ['  ' + line for line in op.message.splitlines()])
+                    ['  ' + line for line in case_result.message.splitlines()])
                 + '\n'
                 )
             self.printer.write(message)
+
+    def print_message_line(self, line):
+        self.printer.write('  ' + line + '\n')
 
     def print_footer(self, plan):
         '''
@@ -907,15 +1143,15 @@ class PrettyFormat(Format):
 
         table = (
             '\n'
-            'operations       : {0:d}\n'
+            'cases            : {0:d}\n'
             'succeeded        : {1:d}\n'
             'failed           : {2:d}\n'
             ).format(
-            plan.num_operations(),
-            len(plan.succeeded_oparations()),
-            len(plan.failed_oparations()))
+            plan.num_cases(),
+            len(plan.succeeded_cases()),
+            len(plan.failed_cases()))
 
-        n = len(plan.skipped_operations())
+        n = len(plan.skipped_cases())
         if n > 0:
             table += (
                 'skipped          : {0:d}\n'
@@ -951,46 +1187,54 @@ class TAPFormat(Format):
 
     def __init__(self, printer):
         self.printer = printer
+        self.test_counter = 0
 
     def print_header(self, plan):
-        '''
-        Print TAP header
-        '''
-        self.printer.write(
-            '1..{0:d}\n'.format(plan.num_operations()))
+        pass
 
-    def print_case_result(self, op):
+    def print_case_result(self, case_result):
         '''
-        Print TAP test case results
+        Print TAP test case result
         '''
-        if op.status == OpState.SUCCEEDED:
+
+        self.test_counter += 1
+
+        if case_result.status == CaseResult.SUCCEEDED:
             s = 'ok {0:d} {1:s}\n'.format(
-                op.id_num, op)
-        elif op.status == OpState.FAILED:
+                self.test_counter,
+                case_result.description)
+        elif case_result.status == CaseResult.FAILED:
             s = 'not ok {0:d} {1:s}\n'.format(
-                op.id_num, op)
-        elif op.status == OpState.SKIPPED:
+                self.test_counter,
+                case_result.description)
+        elif case_result.status == CaseResult.SKIPPED:
             s = 'ok {0:d} # SKIP {1:s}\n'.format(
-                op.id_num, op)
+                self.test_counter,
+                case_result.description)
         else:
             assert False
 
         self.printer.write(s)
 
-        if op.message != '':
+        if case_result.message != '':
             # put '# ' at the front of each line
             message = (
                 '\n'.join(
-                    ['# ' + line for line in op.message.splitlines()])
+                    ['# ' + line for line in case_result.message.splitlines()])
                 + '\n'
                 )
             self.printer.write(message)
 
+    def print_message_line(self, line):
+        self.printer.write('# ' + line + '\n')
+
     def print_footer(self, plan):
         '''
-        No footer
+        Print TAP plan (1..N) at last
         '''
-        pass
+        self.printer.write(
+            '1..{0:d}\n'
+            .format(self.test_counter))
 
 
 class MultiFormat(Format):
@@ -1005,9 +1249,13 @@ class MultiFormat(Format):
         for f in self.format_list:
             f.print_header(plan)
 
-    def print_case_result(self, op):
+    def print_case_result(self, case_result):
         for f in self.format_list:
-            f.print_case_result(op)
+            f.print_case_result(case_result)
+
+    def print_message_line(self, line):
+        for f in self.format_list:
+            f.print_message_line(line)
 
     def print_footer(self, plan):
         for f in self.format_list:
@@ -1019,35 +1267,61 @@ class Plan(list):
     List of operation objects.
     '''
 
-    def run(self, dest_formatter):
+    def run(self, out_format):
         '''
-        Run the operations and put the result to destination formatters
+        Run the operations and print the result with out_format
         '''
 
-        dest_formatter.print_header(self)
+        out_format.print_header(self)
 
         # For each operations
         for op in self:
-            op.run()
+            op.run(out_format)
 
-            dest_formatter.print_case_result(op)
-
-            if world['stop on failure'] and op.status == OpState.FAILED:
+            if (world['stop on failure'] and op.has_failed()):
                 world['skip all'] = True
 
-        dest_formatter.print_footer(self)
+        out_format.print_footer(self)
 
     def num_operations(self):
         return len(self)
 
+    def num_cases(self):
+        return sum(map(
+            lambda op: len(op.case_results),
+            self))
+
     def succeeded_oparations(self):
-        return filter(lambda o: o.status == OpState.SUCCEEDED, self)
+        return filter(
+            lambda o: o.has_succeeded(),
+            self)
 
     def failed_oparations(self):
-        return filter(lambda o: o.status == OpState.FAILED, self)
+        return filter(
+            lambda o: o.has_failed(),
+            self)
 
     def skipped_operations(self):
-        return filter(lambda o: o.status == OpState.SKIPPED, self)
+        return filter(
+            lambda o: not o.has_succeeded() and not o.has_failed(),
+            self)
+
+    def __filter_cases(self, status):
+        cc = []
+        for op in self:
+            for c in op.case_results:
+                if c.status == status:
+                    cc.append(c)
+        return cc
+
+    def succeeded_cases(self):
+        return self.__filter_cases(CaseResult.SUCCEEDED)
+
+    def failed_cases(self):
+        return self.__filter_cases(CaseResult.FAILED)
+
+    def skipped_cases(self):
+        return self.__filter_cases(CaseResult.SKIPPED)
 
     def total_elapsed_time(self):
         return sum([o.elapsed for o in self])

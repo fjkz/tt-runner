@@ -3,7 +3,5 @@ os:
 language: python
 python:
   - "2.7"
-install:
-  - "pip install pep8"
 script:
-  - ./test/exec_tests.sh
+  - ./test/exec_tests.sh --tap

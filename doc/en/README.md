@@ -25,7 +25,7 @@ $ tt-runner sample/test-simple
 ✗ test_not_ok.sh
 ✓ test_ok.sh
 
-operations       : 2
+cases            : 2
 succeeded        : 1
 failed           : 1
 time taken [sec] : 0
@@ -44,7 +44,7 @@ not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
 ```
 
-The result is also output to the directory specified with `-o` option. `result.txt` is the TAP formatted result. `*.out` are the standard out and the standard error of each script.
+The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
 
 ```
 $ tt-runner sample/test-simple -o result > /dev/null
@@ -56,7 +56,7 @@ result.txt  test_not_ok.sh.out  test_ok.sh.out
 
 Any programming languages are available for writing scripts. Each script needs to satisfy the following conditions.
 
-Script files must be executable in Unix. That is, they must have readable and executable permission. Non-executable scripts are skipped. And, do not forget the shebang (a header starting with `#!`).
+Script files must be executable in Unix. That is, they must have readable and executable permission. Non-executable scripts fail. And do not forget the shebang (the header starting with `#!`).
 
 Test scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
 
@@ -67,6 +67,8 @@ The following environment variables are assigned when scripts are run.
 - `TT_RUNNER_EXEC_DIR` has the working directory path where `tt-runner` is executed.
 - `TT_RUNNER_ROOT_DIR` has the root directory path of the test suite.
 - `TT_RUNNER_OUTPUT_DIR` has the directory path where the test result will be put.
+
+Multiple test cases can be written in a file if the scripts output is formatted with TAP. For example, [Bats](https://github.com/sstephenson/bats) can be used. Scripts which file names end with `.bats` or `.t` are expected to output TAP-formatted results. These suffixes can be changed with `--tap-regex` option.
 
 ### Directory Structure
 
@@ -127,7 +129,7 @@ $ tt-runner sample/test-before-after
 ✓ after2.sh.2
 ✓ after1.sh.2
 
-operations       : 10
+cases            : 10
 succeeded        : 10
 failed           : 0
 time taken [sec] : 0
@@ -163,7 +165,7 @@ $ tt-runner sample/test-init-final
 ✓ final2.sh
 ✓ final1.sh
 
-operations       : 6
+cases            : 6
 succeeded        : 6
 failed           : 0
 time taken [sec] : 0
@@ -178,7 +180,7 @@ The following command line options are available for testing of test suites.
 - `--print-log` option prints output of running scripts on the console.
 - `--stop-on-failure` option skips remaining operations if an operation fails. The postconditioning is also skipped then.
 - `--skip-all` option skips all operations. We can know the execution plan.
-- `--only` option runs only specfied scripts. We can also specify directory names. Note that preconditioning and postconditioning operations are not automatically executed.
+- `--only` option runs only specified scripts. We can also specify directory names. Note that preconditioning and postconditioning operations are not automatically executed.
 - `--skip` option skips specified scripts. We can also specify directory names.
 
 ## Improvement of Test Suites

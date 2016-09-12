@@ -13,6 +13,7 @@ set -e
 
 [[ $(cat ${WORKDIR}/result/test1.sh.out) == "OK" ]]
 [[ $(cat ${WORKDIR}/result/test2.sh.out) == "NOT OK" ]]
-[[ $(cat ${WORKDIR}/result/result.txt) == "1..2
-ok 1 test1.sh
-not ok 2 test2.sh" ]]
+[[ $(cat ${WORKDIR}/result/result.txt) == \
+"ok 1 test1.sh
+not ok 2 test2.sh
+1..2" ]]

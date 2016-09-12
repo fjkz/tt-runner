@@ -13,5 +13,6 @@ if [[ $? == 0 ]]; then
 fi
 set -e
 
-[[ ${OUT} == "1..1
-not ok 1 test1.sh" ]]
+[[ ${OUT} == \
+"not ok 1 test1.sh
+1..1" ]]

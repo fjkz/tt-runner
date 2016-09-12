@@ -7,8 +7,11 @@ set -eux
 create_succeeding_test ${WORKDIR}/test1.sh
 chmod 644 ${WORKDIR}/test1.sh
 
+set +e
 OUT=$(tt-runner ${WORKDIR} --tap)
+set -e
 
-[[ ${OUT} == "1..1
-ok 1 # SKIP test1.sh
-# test1.sh is not executable." ]]
+[[ ${OUT} == \
+"not ok 1 test1.sh
+# test1.sh is not executable.
+1..1" ]]

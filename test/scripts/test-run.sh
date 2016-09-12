@@ -13,9 +13,10 @@ set +e
 OUT=$(tt-runner ${WORKDIR} --tap)
 set -e
 
-[[ ${OUT} == "1..4
-ok 1 run1.sh
+[[ ${OUT} == \
+"ok 1 run1.sh
 ok 2 run2.sh
 not ok 3 run3.sh
 ok 4 # SKIP run4.sh
-# depending operation did not succeed: run3.sh" ]]
+# depending operation did not succeed: run3.sh
+1..4" ]]

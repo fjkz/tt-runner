@@ -25,7 +25,7 @@ $ tt-runner sample/test-simple
 ✗ test_not_ok.sh
 ✓ test_ok.sh
 
-operations       : 2
+cases            : 2
 succeeded        : 1
 failed           : 1
 time taken [sec] : 0
@@ -67,6 +67,8 @@ result.txt  test_not_ok.sh.out  test_ok.sh.out
 - `TT_RUNNER_EXEC_DIR` 変数には,  `tt-runner` コマンドが実行されたワーキングディレクトリが含まれます.
 - `TT_RUNNER_ROOT_DIR` 変数には,  `tt-runner` コマンドに指定されたテストスイートのルートディレクトリが含まれます.
 - `TT_RUNNER_OUTPUT_DIR` 変数には,  `tt-runner` コマンドに `-o` オプションで指定されたテスト結果が出力されるディレクトリが含まれます.
+
+テストスクリプトの出力を TAP フォーマットとすると, １つのファイルに複数のテストを記述できます. 例えば, [Bats](https://github.com/sstephenson/bats) が利用できます. ファイル名の末尾が `.bats` か `.t` であるスクリプトは TAP フォーマットでテスト結果を出力することが期待されます. これらの拡張子は `--tap-regex` オプションで変更することができます.
 
 ### ディレクトリ構成
 
@@ -129,7 +131,7 @@ $ tt-runner sample/test-before-after
 ✓ after2.sh.2
 ✓ after1.sh.2
 
-operations       : 10
+cases            : 10
 succeeded        : 10
 failed           : 0
 time taken [sec] : 0
@@ -166,7 +168,7 @@ $ tt-runner sample/test-init-final
 ✓ final2.sh
 ✓ final1.sh
 
-operations       : 6
+cases            : 6
 succeeded        : 6
 failed           : 0
 time taken [sec] : 0

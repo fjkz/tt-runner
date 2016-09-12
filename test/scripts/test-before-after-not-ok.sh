@@ -13,12 +13,13 @@ set +e
 OUT=$(tt-runner ${WORKDIR} --tap)
 set -e
 
-[[ ${OUT} == "1..6
-not ok 1 before.sh.1
+[[ ${OUT} == \
+"not ok 1 before.sh.1
 ok 2 # SKIP test1.sh
 # depending operation did not succeed: before.sh.1
 ok 3 after.sh.1
 not ok 4 before.sh.2
 ok 5 # SKIP test2.sh
 # depending operation did not succeed: before.sh.2
-ok 6 after.sh.2" ]]
+ok 6 after.sh.2
+1..6" ]]
