@@ -5,6 +5,7 @@
 TT-Runner: A Test Scripts Runner
 '''
 
+from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from copy import copy
 import os
@@ -844,7 +845,23 @@ class Planner():
             final_node.accept(self)
 
 
-class PrettyFormat():
+class Format:
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def print_header(self, plan):
+        pass
+
+    @abstractmethod
+    def print_case_result(self, case_result):
+        pass
+
+    @abstractmethod
+    def print_footer(self, plan):
+        pass
+
+
+class PrettyFormat(Format):
     '''
     Pretty format
     '''
@@ -852,13 +869,13 @@ class PrettyFormat():
     def __init__(self, printer):
         self.printer = printer
 
-    def header(self, plan):
+    def print_header(self, plan):
         '''
         No header
         '''
         pass
 
-    def case(self, op):
+    def print_case_result(self, op):
         '''
         Print pretty test case results
         '''
@@ -883,7 +900,7 @@ class PrettyFormat():
                 )
             self.printer.write(message)
 
-    def footer(self, plan):
+    def print_footer(self, plan):
         '''
         Print summury
         '''
@@ -927,7 +944,7 @@ class PrettyFormat():
             self.printer.write('\n' + ''.join(lines))
 
 
-class TAPFormat():
+class TAPFormat(Format):
     '''
     TAP format
     '''
@@ -935,14 +952,14 @@ class TAPFormat():
     def __init__(self, printer):
         self.printer = printer
 
-    def header(self, plan):
+    def print_header(self, plan):
         '''
         Print TAP header
         '''
         self.printer.write(
             '1..{0:d}\n'.format(plan.num_operations()))
 
-    def case(self, op):
+    def print_case_result(self, op):
         '''
         Print TAP test case results
         '''
@@ -969,32 +986,32 @@ class TAPFormat():
                 )
             self.printer.write(message)
 
-    def footer(self, plan):
+    def print_footer(self, plan):
         '''
         No footer
         '''
         pass
 
 
-class MultiFormat():
+class MultiFormat(Format):
     '''
     Write with multiple format
     '''
 
-    def __init__(self, printer_list):
-        self.printer_list = printer_list
+    def __init__(self, format_list):
+        self.format_list = format_list
 
-    def header(self, plan):
-        for printer in self.printer_list:
-            printer.header(plan)
+    def print_header(self, plan):
+        for f in self.format_list:
+            f.print_header(plan)
 
-    def case(self, op):
-        for printer in self.printer_list:
-            printer.case(op)
+    def print_case_result(self, op):
+        for f in self.format_list:
+            f.print_case_result(op)
 
-    def footer(self, plan):
-        for printer in self.printer_list:
-            printer.footer(plan)
+    def print_footer(self, plan):
+        for f in self.format_list:
+            f.print_footer(plan)
 
 
 class Plan(list):
@@ -1007,18 +1024,18 @@ class Plan(list):
         Run the operations and put the result to destination formatters
         '''
 
-        dest_formatter.header(self)
+        dest_formatter.print_header(self)
 
         # For each operations
         for op in self:
             op.run()
 
-            dest_formatter.case(op)
+            dest_formatter.print_case_result(op)
 
             if world['stop on failure'] and op.status == OpState.FAILED:
                 world['skip all'] = True
 
-        dest_formatter.footer(self)
+        dest_formatter.print_footer(self)
 
     def num_operations(self):
         return len(self)
@@ -1055,16 +1072,16 @@ def main():
 
     result_file = os.path.join(world['output dir'], 'result.txt')
     with open(result_file, 'w') as f:
-        result_printer = TAPFormat(Printer(f))
+        file_format = TAPFormat(Printer(f))
 
         console = Printer(sys.stdout)
         if world['format'] == 'pretty':
-            console_printer = PrettyFormat(console)
+            console_format = PrettyFormat(console)
         elif world['format'] == 'TAP':
-            console_printer = TAPFormat(console)
+            console_format = TAPFormat(console)
 
-        printer = MultiFormat([console_printer, result_printer])
-        plan.run(printer)
+        multi_format = MultiFormat([file_format, console_format])
+        plan.run(multi_format)
 
     if plan.has_succeeded():
         return 0
