@@ -12,7 +12,7 @@ mkdir ${WORKDIR}/test4
 create_succeeding_test ${WORKDIR}/test4/run1.sh
 create_succeeding_test ${WORKDIR}/test4/run2.sh
 
-OUT=$(tt-runner ${WORKDIR} --only test2.sh test4 --tap)
+OUT=$(ttap ${WORKDIR} --only test2.sh test4 --tap)
 
 [[ ${OUT} == \
 "ok 1 # SKIP test1.sh

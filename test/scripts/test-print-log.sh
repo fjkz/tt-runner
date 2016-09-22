@@ -8,7 +8,7 @@ create_succeeding_test ${WORKDIR}/test1.sh
 create_failing_test ${WORKDIR}/test2.sh
 
 set +e
-ERR=$(tt-runner ${WORKDIR} --print-log -o ${WORKDIR}/result 2>&1 1>/dev/null)
+ERR=$(ttap ${WORKDIR} --print-log -o ${WORKDIR}/result 2>&1 1>/dev/null)
 set -e
 
 [[ $(cat ${WORKDIR}/result/test1.sh.out) == "OK" ]]

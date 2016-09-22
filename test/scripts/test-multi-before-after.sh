@@ -15,7 +15,7 @@ create_succeeding_test ${WORKDIR}/init2.sh
 create_succeeding_test ${WORKDIR}/final1.sh
 create_succeeding_test ${WORKDIR}/final2.sh
 
-OUT=$(tt-runner ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --tap)
 
 [[ ${OUT} == \
 "ok 1 init1.sh

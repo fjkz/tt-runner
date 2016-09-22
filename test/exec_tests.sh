@@ -8,5 +8,5 @@ export PATH="${MYDIR}/../bin:${PATH}"
 export WORKDIR="/tmp/tt-runner-tests"
 export CONFDIR="${MYDIR}/conf"
 rm -rf result
-tt-runner scripts -o result \
+ttap scripts -o result \
   --randomize --multiply-preconditioning "$@"

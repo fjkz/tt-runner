@@ -1,14 +1,14 @@
-# TT-Runner: A Test Scripts Runner
+# ttap: a test scripts runner
 
 [![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
 
-*TT-Runner* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily.
+*ttap* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily.
 
 ## Usage
 
 ### Running Tests
 
-Suppose that we have test scripts below. We later describe a set of test scripts run by TT-Runner as a test suite.
+Suppose that we have test scripts below. We later describe a set of test scripts run by ttap as a test suite.
 
 ```
 sample/test-simple
@@ -16,12 +16,12 @@ sample/test-simple
 └── test_ok.sh
 ```
 
-We can run them by invoking `tt-runner` with the root path of the test suite. If all test scripts succeed, `tt-runner` exits with a 0 status code. If there are any failures, `tt-runner` exits with a 1 status code.
+We can run them by invoking `ttap` with the root path of the test suite. If all test scripts succeed, `ttap` exits with a 0 status code. If there are any failures, `ttap` exits with a 1 status code.
 
 The result is printed on the console.
 
 ```
-$ tt-runner sample/test-simple
+$ ttap sample/test-simple
 ✗ test_not_ok.sh
 ✓ test_ok.sh
 
@@ -38,7 +38,7 @@ FAILURE
 The result is printed with TAP (Test Anything Protocol) if `--tap` option is set.
 
 ```
-$ tt-runner sample/test-simple --tap
+$ ttap sample/test-simple --tap
 1..2
 not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
@@ -47,7 +47,7 @@ ok 2 test_ok.sh
 The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
 
 ```
-$ tt-runner sample/test-simple -o result > /dev/null
+$ ttap sample/test-simple -o result > /dev/null
 $ ls result
 result.txt  test_not_ok.sh.out  test_ok.sh.out
 ```
@@ -58,15 +58,15 @@ Any programming languages are available for writing scripts. Each script needs t
 
 Script files must be executable in Unix. That is, they must have readable and executable permission. Non-executable scripts fail. And do not forget the shebang (the header starting with `#!`).
 
-Test scripts must exit with a non-zero status code when it fails. `tt-runner` verifies whether each script succeeded or failed with the status code.
+Test scripts must exit with a non-zero status code when it fails. `ttap` verifies whether each script succeeded or failed with the status code.
 
-Note that each script is executed in the directory where it exists. `tt-runner` changes the working directory internally when it runs a script. If you do not want to change the working directory, you can set `--no-change-dir` option.
+Note that each script is executed in the directory where it exists. `ttap` changes the working directory internally when it runs a script. If you do not want to change the working directory, you can set `--no-change-dir` option.
 
 The following environment variables are assigned when scripts are run.
 
-- `TT_RUNNER_EXEC_DIR` has the working directory path where `tt-runner` is executed.
-- `TT_RUNNER_ROOT_DIR` has the root directory path of the test suite.
-- `TT_RUNNER_OUTPUT_DIR` has the directory path where the test result will be put.
+- `TTAP_EXEC_DIR` has the working directory path where `ttap` is executed.
+- `TTAP_ROOT_DIR` has the root directory path of the test suite.
+- `TTAP_OUTPUT_DIR` has the directory path where the test result will be put.
 
 Multiple test cases can be written in a file if the scripts output is formatted with TAP. For example, [Bats](https://github.com/sstephenson/bats) can be used. Scripts which file names end with `.bats` or `.t` are expected to output TAP-formatted results. These suffixes can be changed with `--tap-regex` option.
 
@@ -117,7 +117,7 @@ sample/test-before-after
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-before-after
+$ ttap sample/test-before-after
 ✓ before1.sh.1
 ✓ before2.sh.1
 ✓ test1.sh
@@ -157,7 +157,7 @@ sample/test-init-final
 ├── test1.sh
 └── test2.sh
 
-$ tt-runner sample/test-init-final
+$ ttap sample/test-init-final
 ✓ init1.sh
 ✓ init2.sh
 ✓ test1.sh
@@ -185,7 +185,7 @@ The following command line options are available for testing of test suites.
 
 ## Improvement of Test Suites
 
-Each test should be independent. In order to force tests to be independent, `tt-runner` randomizes the order of running tests with `--randomize` option. `tt-runner` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatability.
+Each test should be independent. In order to force tests to be independent, `ttap` randomizes the order of running tests with `--randomize` option. `ttap` shuffles the order of tests in the same directory. The random seed is printed at the summary message. We can assign a random seed with `--randomize` option for repeatability.
 
 Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. This option runs preconditioning operations twice in a row. Note that postconditioning operations do not need to be idempotent because they should expect preconditions are satisfied.
 

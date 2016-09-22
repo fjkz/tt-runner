@@ -2,7 +2,7 @@
 # coding: utf-8
 
 '''
-TT-Runner: A Test Scripts Runner
+ttap: a test scripts runner
 '''
 
 from abc import ABCMeta, abstractmethod
@@ -22,7 +22,7 @@ world = None
 
 # default configuration values
 default = {
-    'output dir': '/tmp/tt-runner',
+    'output dir': '/tmp/ttap',
     'test regex': '^test',
     'run regex': '^run',
     'before regex': '^before',
@@ -63,7 +63,7 @@ class MyParser(ArgumentParser):
             '--tap',
             action='store_true',
             default=False,
-            help='show result in TAP format')
+            help='show result with TAP format')
 
         parser.add_argument(
             '--no-color',
@@ -181,7 +181,7 @@ class MyParser(ArgumentParser):
             nargs=1,
             default=[d],
             help=('regex matching with script files that output '
-                  'is formatted in Test Anything Protocol. '
+                  'is formatted with Test Anything Protocol. '
                   'default: {0}').format(d))
 
         return parser
@@ -270,9 +270,9 @@ class Environment(dict):
             raise MyError(e)
 
         # set environment variables in the process
-        os.environ['TT_RUNNER_EXEC_DIR'] = os.getcwd()
-        os.environ['TT_RUNNER_ROOT_DIR'] = self['root dir']
-        os.environ['TT_RUNNER_OUTPUT_DIR'] = self['output dir']
+        os.environ['TTAP_EXEC_DIR'] = os.getcwd()
+        os.environ['TTAP_ROOT_DIR'] = self['root dir']
+        os.environ['TTAP_OUTPUT_DIR'] = self['output dir']
 
 
 class Path():
@@ -1367,5 +1367,5 @@ if __name__ == '__main__':
         status = main()
         sys.exit(status)
     except MyError as e:
-        print >> sys.stderr, 'tt-runner:', e
+        print >> sys.stderr, 'ttap:', e
         sys.exit(2)

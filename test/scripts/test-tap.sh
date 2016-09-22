@@ -38,7 +38,7 @@ chmod 755 ${WORKDIR}/test2.t
 chmod 755 ${WORKDIR}/test3.t
 
 set +e
-OUT=$(tt-runner ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --tap)
 set -e
 
 [[ ${OUT} == \

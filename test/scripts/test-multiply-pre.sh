@@ -15,7 +15,7 @@ create_succeeding_test ${WORKDIR}/init2.sh
 create_succeeding_test ${WORKDIR}/final1.sh
 create_succeeding_test ${WORKDIR}/final2.sh
 
-OUT=$(tt-runner ${WORKDIR} --multiply-preconditioning --tap)
+OUT=$(ttap ${WORKDIR} --multiply-preconditioning --tap)
 
 [[ ${OUT} == \
 "ok 1 init1.sh.1

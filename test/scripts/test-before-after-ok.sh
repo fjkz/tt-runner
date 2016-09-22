@@ -9,7 +9,7 @@ create_succeeding_test ${WORKDIR}/test2.sh
 create_succeeding_test ${WORKDIR}/before.sh
 create_succeeding_test ${WORKDIR}/after.sh
 
-OUT=$(tt-runner ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --tap)
 
 [[ ${OUT} == \
 "ok 1 before.sh.1

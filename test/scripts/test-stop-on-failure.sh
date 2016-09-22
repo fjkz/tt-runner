@@ -10,7 +10,7 @@ create_succeeding_test ${WORKDIR}/test3.sh
 create_succeeding_test ${WORKDIR}/test4.sh
 
 set +e
-OUT=$(tt-runner ${WORKDIR} --stop-on-failure --tap)
+OUT=$(ttap ${WORKDIR} --stop-on-failure --tap)
 set -e
 
 [[ ${OUT} == \

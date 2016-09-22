@@ -16,7 +16,7 @@ END
 create_wrong_test ${WORKDIR}/test1.sh
 
 set +e
-OUT=$(tt-runner ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --tap)
 set -e
 
 [[ ${OUT} == \
