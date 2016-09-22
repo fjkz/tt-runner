@@ -1262,6 +1262,27 @@ class MultiFormat(Format):
             f.print_footer(plan)
 
 
+class MultiFormat():
+    '''
+    Write with multiple format
+    '''
+
+    def __init__(self, printer_list):
+        self.printer_list = printer_list
+
+    def header(self, plan):
+        for printer in self.printer_list:
+            printer.header(plan)
+
+    def case(self, op):
+        for printer in self.printer_list:
+            printer.case(op)
+
+    def footer(self, plan):
+        for printer in self.printer_list:
+            printer.footer(plan)
+
+
 class Plan(list):
     '''
     List of operation objects.
