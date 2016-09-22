@@ -39,9 +39,9 @@ FAILURE
 
 ```
 $ ttap sample/test-simple --tap
-1..2
 not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
+1..2
 ```
 
 テストの結果は, `-o` オプションで指定されたディレクトリにも出力されます. `result.txt` は TAP フォーマットのテスト結果です. `*.out` はそれぞれのスクリプトの標準出力および標準エラー出力です.

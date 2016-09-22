@@ -39,9 +39,9 @@ The result is printed with TAP (Test Anything Protocol) if `--tap` option is set
 
 ```
 $ ttap sample/test-simple --tap
-1..2
 not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
+1..2
 ```
 
 The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
