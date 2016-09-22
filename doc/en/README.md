@@ -1,6 +1,6 @@
 # ttap: a test scripts runner
 
-[![Build Status](https://travis-ci.org/fjkz/tt-runner.svg?branch=master)](https://travis-ci.org/fjkz/tt-runner)
+[![Build Status](https://travis-ci.org/fjkz/ttap.svg?branch=master)](https://travis-ci.org/fjkz/ttap)
 
 *ttap* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily.
 
