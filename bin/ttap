@@ -48,7 +48,7 @@ class MyParser(ArgumentParser):
         parser.add_argument(
             'PATH',
             nargs=1,
-            help='path to the root directory of a test suite')
+            help="path to a test suite's root directory")
         d = default['output dir']
         parser.add_argument(
             '-o', '--output',
@@ -181,8 +181,8 @@ class MyParser(ArgumentParser):
             metavar='RE',
             nargs=1,
             default=[d],
-            help=('regex matching with script files that output '
-                  'is formatted with Test Anything Protocol. '
+            help=('regex matching with script files which output '
+                  'are formatted with Test Anything Protocol. '
                   'default: {0}').format(d))
 
         return parser
@@ -290,21 +290,40 @@ class Path():
         return os.path.relpath(self.path_string, world["root dir"])
 
     def abspath(self):
+        '''
+        Return the absolute path string
+        '''
         return self.path_string
 
     def normalized(self):
+        '''
+        Return the relative path from the root
+        directory of the test suite
+        '''
         return str(self)
 
     def basename(self):
+        '''
+        Return the file name
+        '''
         return os.path.basename(self.path_string)
 
     def dirname(self):
+        '''
+        Return the directory name where the file exists
+        '''
         return os.path.dirname(self.path_string)
 
     def is_executable(self):
+        '''
+        Return True if the file is executable
+        '''
         return os.access(self.path_string, os.R_OK | os.X_OK)
 
     def startswith(self, path_string):
+        '''
+        Return True if the path starts with the given path string
+        '''
         assert os.path.isabs(path_string)
         return self.path_string.startswith(path_string)
 
@@ -340,6 +359,9 @@ class Node():
         return self.path.basename()
 
     def is_empty(self):
+        '''
+        Return True if this node does not have child nodes
+        '''
         if (self.tests and self.runs and
                 self.befores and self.afters and
                 self.inits and self.finals):
@@ -399,39 +421,58 @@ class NodeGroup(list):
 
 
 class TestGroup(NodeGroup):
+    '''
+    List of test-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_test_group(self)
 
 
 class RunGroup(NodeGroup):
+    '''
+    List of run-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_run_group(self)
 
 
 class BeforeGroup(NodeGroup):
+    '''
+    List of before-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_before_group(self)
 
 
 class AfterGroup(NodeGroup):
+    '''
+    List of after-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_after_group(self)
 
 
 class InitGroup(NodeGroup):
+    '''
+    List of init-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_init_group(self)
 
 
 class FinalGroup(NodeGroup):
+    '''
+    List of final-nodes
+    '''
     def accept(self, visitor):
         visitor.visit_final_group(self)
 
 
 class Tree():
     '''
-    A tree of node objects.
-    It traces the directory structure of test scripts
+    A tree of node objects
+
+    It traces the directory structure of the test suites.
     '''
 
     def __init__(self, root_path):
@@ -444,7 +485,14 @@ class Tree():
             raise MyError(e)
 
     class StringFormatter():
+        '''
+        Format string from Tree object
+        '''
+
         def get_string(self, tree):
+            '''
+            Return string object
+            '''
             self.string = ''
             self.indent = ''
             tree.root_node.accept(self)
@@ -497,8 +545,8 @@ class Tree():
 
     def __create_nodes(self, path):
         '''
-        Create node objects under the path recursively.
-        return a node object that represents the path
+        Create node objects under the path recursively
+        and return a node object that represents the path
         '''
 
         if os.path.isfile(path):
@@ -542,6 +590,9 @@ class Tree():
 
 
 class Printer():
+    '''
+    write strings to a file
+    '''
     __color_head = {
         'red': '\033[91m',
         'green': '\033[92m',
@@ -550,9 +601,15 @@ class Printer():
     }
 
     def __init__(self, out):
+        '''
+        Initialize printer with a file object
+        '''
         self.out = out
 
     def write(self, message, color=None):
+        '''
+        Write the message with a color
+        '''
         if world['color output'] and color:
             end = '\033[0m'
             message = Printer.__color_head[color] + message + end
@@ -561,6 +618,9 @@ class Printer():
 
 
 class NullFile():
+    '''
+    Null file object
+    '''
 
     def write(self, string):
         pass
@@ -590,6 +650,9 @@ class CaseResult():
 
 
 class Protocol():
+    '''
+    Protocol of scripts
+    '''
     __metaclass__ = ABCMeta
 
     def set_format(self, out_format):
@@ -612,8 +675,17 @@ class Protocol():
 
 
 class StandardProtocol(Protocol):
+    '''
+    Simple protocol
+
+    Operations succeed when scripts exit with a zero status.
+    Operations fail when scripts exit with a non-zero status.
+    '''
 
     def decode_stdout(self, iterable_lines):
+        '''
+        Print stdout to console when --print-log option is set
+        '''
 
         if world['print log']:
             console = Printer(sys.stderr)
@@ -662,6 +734,11 @@ class TestAnythingProtocol(Protocol):
         self.bailouted = False
 
     def decode_stdout(self, iterable_lines):
+        '''
+        Decode TAP-formatted result
+        '''
+
+        # TODO: validate protocol
 
         for line in iterable_lines:
             if self.RE_PLAN.match(line):
@@ -779,6 +856,9 @@ class Operation():
             return str(self.path)
 
     def logfile_name(self):
+        '''
+        Get the log file name about this object
+        '''
         return '{0:s}.out'.format(
             str(self).replace(os.sep, '.'))
 
@@ -959,8 +1039,6 @@ class Planner():
         '''
 
         # accept method must be sandwiched between __set and __reset.
-        # FIXME: this syntax might be difficult to under stand.
-        #        rewrite more readable way.
         __m = []
 
         def __set(list):
@@ -1081,6 +1159,9 @@ class Planner():
 
 
 class Format:
+    '''
+    Output format of test result
+    '''
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -1290,24 +1371,39 @@ class Plan(list):
         out_format.print_footer(self)
 
     def num_operations(self):
+        '''
+        Return the number of operation
+        '''
         return len(self)
 
     def num_cases(self):
+        '''
+        Return the number of test cases
+        '''
         return sum(map(
             lambda op: len(op.case_results),
             self))
 
     def succeeded_oparations(self):
+        '''
+        Return all succeeded operations
+        '''
         return filter(
             lambda o: o.has_succeeded(),
             self)
 
     def failed_oparations(self):
+        '''
+        Return all failed operations
+        '''
         return filter(
             lambda o: o.has_failed(),
             self)
 
     def skipped_operations(self):
+        '''
+        Return all skipped operations
+        '''
         return filter(
             lambda o: not o.has_succeeded() and not o.has_failed(),
             self)
@@ -1321,18 +1417,33 @@ class Plan(list):
         return cc
 
     def succeeded_cases(self):
+        '''
+        Return all succeeded test cases
+        '''
         return self.__filter_cases(CaseResult.SUCCEEDED)
 
     def failed_cases(self):
+        '''
+        Return all failed test cases
+        '''
         return self.__filter_cases(CaseResult.FAILED)
 
     def skipped_cases(self):
+        '''
+        Return all skipped test cases
+        '''
         return self.__filter_cases(CaseResult.SKIPPED)
 
     def total_elapsed_time(self):
+        '''
+        Return total taken time
+        '''
         return sum([o.elapsed for o in self])
 
     def has_succeeded(self):
+        '''
+        Return True if no operation failed
+        '''
         return not len(self.failed_oparations()) > 0
 
 
