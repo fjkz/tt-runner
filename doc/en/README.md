@@ -1,8 +1,10 @@
-# ttap: a test scripts runner
+# ttap: a testing framework with file system hierarchy
 
 [![Build Status](https://travis-ci.org/fjkz/ttap.svg?branch=master)](https://travis-ci.org/fjkz/ttap)
 
-*ttap* is a directory structure framework of test scripts. It helps to organize test scripts, and it helps to run the scripts easily.
+*ttap* is a directory structure framework of test scripts. It plans testing procedure with file system hierarchy of test scripts, and it executes testing.
+
+ttap can output testing results with [TAP (Test Anything Protocol)](http://testanything.org/). And it can be combined with other testing frameworks that output TAP, i.e. Bats.
 
 ## Usage
 
@@ -35,7 +37,7 @@ FAILURE
 - test_not_ok.sh
 ```
 
-The result is printed with TAP (Test Anything Protocol) if `--tap` option is set.
+The result is printed with TAP if `--tap` option is set.
 
 ```
 $ ttap sample/test-simple --tap

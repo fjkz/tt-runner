@@ -2,7 +2,7 @@
 # coding: utf-8
 
 '''
-ttap: a test scripts runner
+ttap: a testing framework with file system hierarchy
 '''
 
 from abc import ABCMeta, abstractmethod
@@ -42,7 +42,8 @@ class MyParser(ArgumentParser):
         '''
         Create my parser. Define options and usage document.
         '''
-        parser = ArgumentParser(description='A Test Scripts Runner')
+        parser = ArgumentParser(
+            description='a testing framework with file system hierarchy')
 
         parser.add_argument(
             'PATH',

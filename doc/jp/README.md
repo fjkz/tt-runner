@@ -1,8 +1,10 @@
 Japanese in UTF-8
 
-# ttap: A Test Scripts Runner
+# ttap: a testing framework with file system hierarchy
 
-**ttap** はテストスクリプト群のディレクトリ構成のフレームワークです. ttap によってテストスクリプト群は整理されます. また, テストスクリプト群が簡単に実行できるようになります. テスト結果は [TAP (Test Anything Protocol)](http://testanything.org/) で出力されます.
+**ttap** はテストスクリプト群のディレクトリ構成のフレームワークです. テストスクリプト群のディレクトリ構成を元にテストを計画し, 実行します.
+
+ttap はテスト結果を [TAP (Test Anything Protocol)](http://testanything.org/) で出力することができます. また, ttap を TAP を出力する他のテスティングフレームワーク (i.e. Bats) と連携させることができます.
 
 ## 使用法
 
