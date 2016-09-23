@@ -376,6 +376,7 @@ class NodeGroup(list):
     '''
     List of node objects
     '''
+    __metaclass__ = ABCMeta
 
     def randomized(self):
         '''
@@ -391,6 +392,10 @@ class NodeGroup(list):
         Return node list sorted by path name
         '''
         return sorted(self, key=lambda node: node.path, reverse=reverse)
+
+    @abstractmethod
+    def accept(self, visitor):
+        pass
 
 
 class TestGroup(NodeGroup):
