@@ -276,6 +276,21 @@ class Environment(dict):
         os.environ['TTAP_ROOT_DIR'] = self['root dir']
         os.environ['TTAP_OUTPUT_DIR'] = self['output dir']
 
+        # If a relative path is set in PATH environment variable,
+        # reset the absolute path to PATH. This is for the case
+        # where a user set relative path to Bats and ttap losts it
+        # as changing working directory.
+        # If this is considered to be interfering, this will be removed.
+        if self['change dir']:
+            paths = os.environ['PATH'].split(':')
+            new_paths = []
+            for p in paths:
+                if os.path.isabs(p):
+                    new_paths.append(p)
+                else:
+                    new_paths.append(os.path.abspath(p))
+            os.environ['PATH'] = ':'.join(new_paths)
+
 
 class Path():
     '''
