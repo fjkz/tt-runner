@@ -196,8 +196,8 @@ SUCCESS
 
 ## 必要環境
 
-- Linux
-- Python 2.7
+- Linux or UNIX
+- Python 2.7 or 3.x
 
 ## ライセンス
 

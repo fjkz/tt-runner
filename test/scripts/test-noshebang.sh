@@ -19,8 +19,9 @@ set +e
 OUT=$(ttap ${WORKDIR} --tap)
 set -e
 
-[[ ${OUT} == \
-"not ok 1 test1.sh
-# OSError: [Errno 2] No such file or directory
-# Is the shebang correct?
-1..1" ]]
+echo "${OUT}" | {
+  read line; [[ $line == "not ok 1 test1.sh" ]]
+  read line; [[ $line =~ "# [Errno 2] No such file or directory" ]]
+  read line; [[ $line == "# Is the shebang correct?" ]]
+  read line; [[ $line == "1..1" ]]
+}

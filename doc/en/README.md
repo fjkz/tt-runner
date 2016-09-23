@@ -193,8 +193,8 @@ Preconditioning operations should be idempotent. We can check idempotency with `
 
 ## Requirement
 
-- Linux
-- Python 2.7
+- Linux or UNIX
+- Python 2.7 or 3.x
 
 ## License
 
