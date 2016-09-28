@@ -24,12 +24,12 @@ world = None
 # default configuration values
 default = {
     'output dir': '/tmp/ttap',
-    'test regex': '^test',
-    'run regex': '^run',
-    'before regex': '^before',
-    'after regex': '^after',
-    'init regex': '^init',
-    'final regex': '^final',
+    'test regex': r'^test',
+    'run regex': r'^run',
+    'before regex': r'^before',
+    'after regex': r'^after',
+    'init regex': r'^init',
+    'final regex': r'^final',
     'tap regex': r'^.+\.(bats|t)$',
     }
 
