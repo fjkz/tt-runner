@@ -990,62 +990,69 @@ class Operation():
         self.protocol.set_format(out_format)
         self.protocol.set_operation_name(str(self))
 
-        try:
-            process = Popen(
-                [self.path.abspath()],
-                stdout=PIPE,
-                stderr=STDOUT)
+        logfile = os.path.join(
+            world['output dir'], self.logfile_name())
 
-            logfile = os.path.join(
-                world['output dir'], self.logfile_name())
+        # write stdout and stderr of the operation to logfile
+        with codecs.open(logfile, mode='w', encoding='utf8') as log:
 
-            # write stdout and stderr of the operation
-            # to stderr and logfile
-            with process.stdout, codecs.open(
-                    logfile, mode='w', encoding='utf8') as f:
+            log.write("file: {0}\n".format(str(self.path)))
+            log.write("\n--- output start ---\n")
+
+            try:
+                process = Popen(
+                    [self.path.abspath()],
+                    stdout=PIPE,
+                    stderr=STDOUT)
 
                 def readline():
                     # expect the process output with UTF-8 encoding
                     line = process.stdout.readline().decode('utf8')
 
                     # write stdout to log file when read
-                    f.write(line)
+                    log.write(line)
 
                     return line
 
                 iterator = iter(readline, '')
 
                 self.protocol.decode_stdout(iterator)
+                process.wait()
 
-            process.wait()
+            except OSError as e:
+                # For the case when the script has a wrong shebang
+                message = (
+                    str(e) + '\n'
+                    'Is the shebang correct?')
+                abort(CaseResult.FAILED, message)
+                return
 
-        except OSError as e:
-            # For the case when the script has a wrong shebang
-            message = (
-                str(e) + '\n'
-                'Is the shebang correct?')
-            abort(CaseResult.FAILED, message)
-            return
+            except ValueError as e:
+                message = (
+                    str(e) + '\n'
+                    'UTF-8 encoding is expected')
+                abort(CaseResult.FAILED, message)
+                return
 
-        except ValueError as e:
-            message = (
-                str(e) + '\n'
-                'UTF-8 encoding is expected')
-            abort(CaseResult.FAILED, message)
-            return
+            except KeyboardInterrupt as i:
+                process.send_signal(SIGINT)
+                process.wait()
+                message = 'KeyboardInterrupt'
+                abort(CaseResult.FAILED, message)
+                return
 
-        except KeyboardInterrupt as i:
-            process.send_signal(SIGINT)
-            process.wait()
-            message = 'KeyboardInterrupt'
-            abort(CaseResult.FAILED, message)
-            return
+            finally:
+                log.write("--- output end ---\n\n")
 
-        self.protocol.decode_statuscode(process.returncode)
-        self.case_results = self.protocol.get_results()
+            status = process.returncode
+            log.write("status code: {0:d}\n".format(status))
+            self.protocol.decode_statuscode(status)
+            self.case_results = self.protocol.get_results()
 
-        end = time()
-        self.elapsed = end - start
+            taken_time = time() - start
+            self.elapsed = taken_time
+            log.write("taken time : {0:f} sec\n".format(taken_time))
+
         self.has_done = True
 
 
