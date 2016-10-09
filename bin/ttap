@@ -865,63 +865,27 @@ class Operation():
         assert not self.has_done
         assert self.case_results is None
 
-        def abort(status, message):
-            result = CaseResult(status, str(self), message)
+        self.__out_format = out_format
 
-            out_format.print_case_result(result)
-
-            self.case_results = [result]
-            self.has_done = True
-
-        if world['skip all']:
-            abort(CaseResult.SKIPPED, '')
+        # check this operation is to be skipped
+        # or to fail before execution
+        to_skip, message = self.__to_be_skipped()
+        if to_skip:
+            self.__abort(CaseResult.SKIPPED, message)
             return
 
-        # skip if the path of the operation is
-        # under the directory in skip list
-        for skip_file in world['skip list']:
-            if self.path.startswith(skip_file):
-                abort(CaseResult.SKIPPED, '')
-                return
-
-        # skip if the path of the operation is
-        # under the directory in only list
-        if len(world['only list']) > 0:
-            for only_file in world['only list']:
-                if self.path.startswith(only_file):
-                    break
-            else:
-                abort(CaseResult.SKIPPED, '')
-                return
-
-        # Skip if depending operation did not succeed.
-        for depend_op in self.depends:
-
-            assert depend_op.has_done
-
-            if not depend_op.has_succeeded():
-                message = (
-                    'depending operation did not succeed: {0:s}'
-                    .format(str(depend_op)))
-                abort(CaseResult.SKIPPED, message)
-                return
-
-        # Failed if the file is not executable.
-        if not self.path.is_executable():
-            message = (
-                '{0:s} is not executable.'
-                .format(str(self.path)))
-            abort(CaseResult.FAILED, message)
+        to_fail, message = self.__to_fail()
+        if to_fail:
+            self.__abort(CaseResult.FAILED, message)
             return
 
+        # if change-dir mode, change the working directory
+        # to the directory where the script exists.
         if world['change dir']:
-            # Change the working directory to the directory where
-            # the script exists.
             os.chdir(self.path.dirname())
 
         start = time()
 
-        #results = self.executor.run(self, out_format)
         self.protocol.set_format(out_format)
         self.protocol.set_operation_name(str(self))
 
@@ -943,10 +907,8 @@ class Operation():
                 def readline():
                     # expect the process output with UTF-8 encoding
                     line = process.stdout.readline().decode('utf8')
-
                     # write stdout to log file when read
                     log.write(line)
-
                     return line
 
                 iterator = iter(readline, '')
@@ -956,24 +918,22 @@ class Operation():
 
             except OSError as e:
                 # For the case when the script has a wrong shebang
-                message = (
-                    str(e) + '\n'
-                    'Is the shebang correct?')
-                abort(CaseResult.FAILED, message)
+                message = (str(e) + '\n'
+                           'Is the shebang correct?')
+                self.__abort(CaseResult.FAILED, message)
                 return
 
             except ValueError as e:
-                message = (
-                    str(e) + '\n'
-                    'UTF-8 encoding is expected')
-                abort(CaseResult.FAILED, message)
+                message = (str(e) + '\n'
+                           'UTF-8 encoding is expected')
+                self.__abort(CaseResult.FAILED, message)
                 return
 
             except KeyboardInterrupt as i:
                 process.send_signal(SIGINT)
                 process.wait()
                 message = 'KeyboardInterrupt'
-                abort(CaseResult.FAILED, message)
+                self.__abort(CaseResult.FAILED, message)
                 return
 
             finally:
@@ -988,6 +948,55 @@ class Operation():
             self.elapsed = taken_time
             log.write("taken time : {0:f} sec\n".format(taken_time))
 
+        self.has_done = True
+
+    def __to_be_skipped(self):
+        '''Return whether this operation is to be skipped,
+        and a message'''
+
+        if world['skip all']:
+            return True, ''
+
+        # skip if the path of the operation is
+        # under the directory in skip list
+        for skip_file in world['skip list']:
+            if self.path.startswith(skip_file):
+                return True, ''
+
+        # skip if the path of the operation is
+        # under the directory in only list
+        if len(world['only list']) > 0:
+            for only_file in world['only list']:
+                if self.path.startswith(only_file):
+                    return False, None
+            else:
+                return True, ''
+
+        # Skip if depending operation did not succeed.
+        for depend_op in self.depends:
+            assert depend_op.has_done
+            if not depend_op.has_succeeded():
+                message = (
+                    'depending operation did not succeed: {0:s}'
+                    .format(str(depend_op)))
+                return True, message
+
+        return False, None
+
+    def __to_fail(self):
+        '''Return whether this operation is to fail and a message'''
+        # Fail if the file is not executable.
+        if not self.path.is_executable():
+            message = '{0:s} is not executable.'.format(str(self.path))
+            return True, message
+        else:
+            return False, None
+
+    def __abort(self, status, message):
+        '''Stop this operation'''
+        result = CaseResult(status, str(self), message)
+        self.__out_format.print_case_result(result)
+        self.case_results = [result]
         self.has_done = True
 
 
