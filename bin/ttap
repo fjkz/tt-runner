@@ -23,6 +23,7 @@ world = None
 
 # default configuration values
 default = {
+    'version': 'ttap 0.1',
     'output dir': '/tmp/ttap',
     'test regex': r'^test',
     'run regex': r'^run',
@@ -45,6 +46,11 @@ class MyParser(ArgumentParser):
         '''
         parser = ArgumentParser(
             description='a testing framework with file system hierarchy')
+
+        parser.add_argument(
+            '-v', '--version',
+            action='version',
+            version=default['version'])
 
         parser.add_argument(
             'PATH',
