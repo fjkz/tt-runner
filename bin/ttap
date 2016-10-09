@@ -1188,11 +1188,9 @@ class PrettyFormat(Format):
             assert False
 
         if case_result.message != '':
-            message = (
-                '\n'.join(
-                    ['  ' + line for line in case_result.message.splitlines()])
-                + '\n'
-                )
+            message = '\n'.join(
+                ['  ' + line for line
+                    in case_result.message.splitlines()]) + '\n'
             self.printer.write(message)
 
     def print_message_line(self, line):
@@ -1276,11 +1274,9 @@ class TAPFormat(Format):
 
         if case_result.message != '':
             # put '# ' at the front of each line
-            message = (
-                '\n'.join(
-                    ['# ' + line for line in case_result.message.splitlines()])
-                + '\n'
-                )
+            message = '\n'.join(
+                ['# ' + line for line
+                    in case_result.message.splitlines()]) + '\n'
             self.printer.write(message)
 
     def print_message_line(self, line):
@@ -1329,7 +1325,7 @@ class Plan(list):
         for op in self:
             op.run(out_format)
 
-            if (world['stop on failure'] and op.has_failed()):
+            if world['stop on failure'] and op.has_failed():
                 world['skip all'] = True
 
         out_format.print_footer(self)
