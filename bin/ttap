@@ -371,6 +371,9 @@ class Node():
     def __str__(self):
         return str(self.path)
 
+    def __eq__(self, other):
+        return self.path == other.path
+
     def name(self):
         '''Get the directory or file name'''
         return self.path.basename()
@@ -397,6 +400,9 @@ class Leaf():
     def __str__(self):
         return str(self.path)
 
+    def __eq__(self, other):
+        return self.path == other.path
+
     def name(self):
         return self.path.basename()
 
@@ -405,6 +411,16 @@ class Leaf():
 
     def accept(self, visitor):
         visitor.visit_leaf(self)
+
+
+class NodeType():
+    '''Enum of node type'''
+    TEST = 'test-node'
+    RUN = 'run-node'
+    BEFORE = 'before-node'
+    AFTER = 'after-node'
+    INIT = 'init-node'
+    FINAL = 'final-node'
 
 
 class NodeGroup(list):
@@ -424,42 +440,58 @@ class NodeGroup(list):
         return sorted(self, key=lambda node: node.path, reverse=reverse)
 
     @abstractmethod
+    def name(self):
+        pass
+
+    @abstractmethod
     def accept(self, visitor):
         pass
 
 
 class TestGroup(NodeGroup):
     '''List of test-nodes'''
+    nodetype = NodeType.TEST
+
     def accept(self, visitor):
         visitor.visit_test_group(self)
 
 
 class RunGroup(NodeGroup):
     '''List of run-nodes'''
+    nodetype = NodeType.RUN
+
     def accept(self, visitor):
         visitor.visit_run_group(self)
 
 
 class BeforeGroup(NodeGroup):
     '''List of before-nodes'''
+    nodetype = NodeType.BEFORE
+
     def accept(self, visitor):
         visitor.visit_before_group(self)
 
 
 class AfterGroup(NodeGroup):
     '''List of after-nodes'''
+    nodetype = NodeType.AFTER
+
     def accept(self, visitor):
         visitor.visit_after_group(self)
 
 
 class InitGroup(NodeGroup):
     '''List of init-nodes'''
+    nodetype = NodeType.INIT
+
     def accept(self, visitor):
         visitor.visit_init_group(self)
 
 
 class FinalGroup(NodeGroup):
     '''List of final-nodes'''
+    nodetype = NodeType.FINAL
+
     def accept(self, visitor):
         visitor.visit_final_group(self)
 
@@ -472,7 +504,9 @@ class Tree():
     def __init__(self, root_path):
         '''Create tree'''
         try:
-            self.root_node = self.__create_nodes(root_path)
+            self.root_node = self.__create_nodes(
+                root_path,
+                NodeType.TEST)  # The root path is test-node
         except OSError as e:
             raise MyError(e)
 
@@ -531,48 +565,91 @@ class Tree():
     def __str__(self):
         return Tree.__StringFormatter().get_string(self)
 
-    def __create_nodes(self, path):
+    def __create_nodes(self, path, nodetype):
         '''Create node objects under the path recursively
         and return a node object that represents the path'''
 
         if os.path.isfile(path):
             return Leaf(Path(path))
 
-        def __create_child_nodes(childs, regex):
+        def __create_child_nodes(childs, regex, nodetype):
             names = filter(lambda n: regex.match(n), childs)
             pathes = map(lambda n: os.path.join(path, n), names)
-            nodes = map(lambda p: self.__create_nodes(p), pathes)
+            nodes = map(lambda p: self.__create_nodes(p, nodetype), pathes)
             non_empty_nodes = filter(lambda n: not n.is_empty(), nodes)
             return non_empty_nodes
 
         childs = os.listdir(path)
 
         tests = TestGroup()
-        nodes = __create_child_nodes(childs, world['test regex'])
+        nodes = __create_child_nodes(
+            childs, world['test regex'], NodeType.TEST)
         tests.extend(nodes)
 
         runs = RunGroup()
-        nodes = __create_child_nodes(childs, world['run regex'])
+        nodes = __create_child_nodes(
+            childs, world['run regex'], NodeType.RUN)
         runs.extend(nodes)
 
         befores = BeforeGroup()
-        nodes = __create_child_nodes(childs, world['before regex'])
+        nodes = __create_child_nodes(
+            childs, world['before regex'], NodeType.BEFORE)
         befores.extend(nodes)
 
         afters = AfterGroup()
-        nodes = __create_child_nodes(childs, world['after regex'])
+        nodes = __create_child_nodes(
+            childs, world['after regex'], NodeType.AFTER)
         afters.extend(nodes)
 
         inits = InitGroup()
-        nodes = __create_child_nodes(childs, world['init regex'])
+        nodes = __create_child_nodes(
+            childs, world['init regex'], NodeType.INIT)
         inits.extend(nodes)
 
         finals = FinalGroup()
-        nodes = __create_child_nodes(childs, world['final regex'])
+        nodes = __create_child_nodes(
+            childs, world['final regex'], NodeType.FINAL)
         finals.extend(nodes)
+
+        self.__validate(
+            path, nodetype,
+            tests, runs, befores, afters, inits, finals)
 
         return Node(Path(path), tests, runs,
                     befores, afters, inits, finals)
+
+    def __validate(self, path, nodetype,
+                   tests, runs, befores, afters, inits, finals):
+
+        # 1. two or more node types must not match to a same file
+        def duplicated_member(group_a, group_b):
+            for member in group_a:
+                if member in group_b:
+                    return member
+            return None
+
+        for group_a, group_b in itertools.combinations(
+                [tests, runs, befores, afters, inits, finals], 2):
+            dmemb = duplicated_member(group_a, group_b)
+            if dmemb:
+                raise MyError(
+                    "{0} is in both of {1} and {2}".format(
+                        str(dmemb), group_a.nodetype, group_b.nodetype))
+
+        # 2. run-node and other type nodes are execluded
+        if len(runs) > 0 and (
+                len(tests) + len(befores) + len(afters) +
+                len(inits) + len(finals) > 0):
+            raise MyError('run-node and other node types can ' +
+                          'not be in the same directory: ' + path)
+
+        # 3. other node types than run node can not under
+        #    before, after, init, final nodes.
+        if nodetype != NodeType.TEST and nodetype != NodeType.RUN:
+            for children in [tests, befores, afters, inits, finals]:
+                if len(children) > 0:
+                    raise MyError('{0} can not have a {1} child: {2}'
+                                  .format(nodetype, children.nodetype, path))
 
 
 class Printer():
@@ -1054,11 +1131,6 @@ class Planner():
         node.inits.accept(self)
         if world['multiply preconditioning']:
             node.inits.accept(self)
-
-        # note: temporary execute before-operations and after-operations
-        # respectively before and after run-operations. In the future, we
-        # might prohibit that a node contains both of run-operations and
-        # other operations.
 
         if len(node.runs) > 0:
             __set(self.depended_operations)
