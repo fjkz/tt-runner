@@ -1241,10 +1241,10 @@ class PrettyFormat(Format):
         else:
             self.printer.write('\nFAILURE\n', 'red')
 
-            # list of failed oparations
+            # list of failed test cases
             lines = [
-                '- {0:s}\n'.format(str(o))
-                for o in plan.failed_oparations()]
+                '- {0:s}\n'.format(case.description)
+                for case in plan.failed_cases()]
             self.printer.write('\n' + ''.join(lines))
 
 
