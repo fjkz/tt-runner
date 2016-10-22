@@ -5,6 +5,8 @@
 
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
+from io import IOBase
+import itertools
 import codecs
 from copy import copy
 import os
@@ -596,7 +598,7 @@ class Printer():
         self.out.flush()
 
 
-class NullFile(file):
+class NullFile(IOBase):
     '''Null file object
 
     only write and flush method can be used'''
