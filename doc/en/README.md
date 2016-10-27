@@ -97,9 +97,11 @@ Test-nodes have no order. Each test case should be independent. See the section 
 
 #### Run-Nodes
 
-Run-nodes are used as children of other node types. Unlike test-nodes, run-nodes have a sequence. They are run by the ascending order.
+Run-nodes are used as children of other node types. Before, after, init and final nodes can not have other type nodes than run-nodes.
 
-We do not recommend that run-nodes and other type nodes should be included in the same directory.
+Additionally, run-nodes and other type nodes must not be included in the same directory.
+
+Unlike test-nodes, run-nodes have a sequence. They are run by the ascending order.
 
 #### Before-Nodes / After-Nodes
 
