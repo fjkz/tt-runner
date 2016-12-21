@@ -213,7 +213,7 @@ class Environment(dict):
 
         self['change dir'] = not args.no_change_dir
 
-        ## Quality options
+        # Quality options
 
         # when --randomize option is assigned
         if args.randomize:
@@ -225,7 +225,7 @@ class Environment(dict):
 
         self['multiply preconditioning'] = args.multiply_preconditioning
 
-        ## Testing for test options
+        # Testing for test options
 
         self['print log'] = args.print_log
         self['stop on failure'] = args.stop_on_failure
@@ -245,7 +245,7 @@ class Environment(dict):
                 raise MyError("No such file or directory: '{0}'"
                               .format(os.path.relpath(p)))
 
-        ## Regex options
+        # Regex options
 
         self['test regex'] = re.compile(args.test_regex[0])
         self['run regex'] = re.compile(args.run_regex[0])
@@ -1502,6 +1502,7 @@ def main():
         return 0
     else:
         return 1
+
 
 if __name__ == '__main__':
     try:
