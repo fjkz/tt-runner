@@ -18,12 +18,13 @@ from subprocess import Popen, PIPE, STDOUT
 import sys
 from time import time
 
+__version__ = '0.1'
+
 # global configuration object
 world = None
 
 # default configuration values
 default = {
-    'version': 'ttap 0.1',
     'output dir': '/tmp/ttap',
     'test regex': r'^test',
     'run regex': r'^run',
@@ -49,7 +50,7 @@ class MyParser(ArgumentParser):
         parser.add_argument(
             '-v', '--version',
             action='version',
-            version=default['version'])
+            version=__version__)
 
         parser.add_argument(
             'PATH',
