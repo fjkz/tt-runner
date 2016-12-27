@@ -605,10 +605,10 @@ class Tree():
             return Leaf(Path(path))
 
         def __create_child_nodes(childs, regex, nodetype):
-            names = filter(lambda n: regex.match(n), childs)
-            pathes = map(lambda n: os.path.join(path, n), names)
-            nodes = map(lambda p: self.__create_nodes(p, nodetype), pathes)
-            non_empty_nodes = filter(lambda n: not n.is_empty(), nodes)
+            names = [n for n in childs if regex.match(n)]
+            pathes = [os.path.join(path, n) for n in names]
+            nodes = [self.__create_nodes(p, nodetype) for p in pathes]
+            non_empty_nodes = [n for n in nodes if not n.is_empty()]
             return non_empty_nodes
 
         childs = os.listdir(path)
@@ -1145,12 +1145,11 @@ class Planner():
 
         # set serial numbers
         for op in self.planned_operations:
-            c = list(filter(
-                lambda o: o.path == op.path, self.planned_operations))
+            c = [o for o in self.planned_operations if o.path == op.path]
             assert len(c) > 0
             if len(c) == 1:
                 continue
-            n = max(map(lambda o: o.serial_num, c))
+            n = max([o.serial_num for o in c])
             op.set_serial(n + 1)
 
         return self.planned_operations
@@ -1465,34 +1464,24 @@ class Plan(list):
 
     def num_cases(self):
         """Return the number of test cases."""
-        return sum(map(
-            lambda op: len(op.case_results),
-            self))
+        return sum([len(op.case_results) for op in self])
 
     def succeeded_oparations(self):
         """Return all succeeded operations."""
-        return list(filter(
-            lambda o: o.has_succeeded(),
-            self))
+        return [o for o in self if o.has_succeeded()]
 
     def failed_oparations(self):
         """Return all failed operations."""
-        return list(filter(
-            lambda o: o.has_failed(),
-            self))
+        return [o for o in self if o.has_failed()]
 
     def skipped_operations(self):
         """Return all skipped operations."""
-        return list(filter(
-            lambda o: not o.has_succeeded() and not o.has_failed(),
-            self))
+        return [o for o in self if o.has_succeeded() and not o.has_failed()]
 
     def __filter_cases(self, status):
         cc = []
         for op in self:
-            for c in op.case_results:
-                if c.status == status:
-                    cc.append(c)
+            cc.extend([c for c in op.case_results if c.status == status])
         return cc
 
     def succeeded_cases(self):
