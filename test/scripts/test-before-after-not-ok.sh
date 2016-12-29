@@ -9,9 +9,7 @@ create_succeeding_test ${WORKDIR}/test2.sh
 create_failing_test ${WORKDIR}/before.sh
 create_succeeding_test ${WORKDIR}/after.sh
 
-set +e
-OUT=$(ttap ${WORKDIR} --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --format tap) || :
 
 [[ ${OUT} == \
 "not ok 1 before.sh.1

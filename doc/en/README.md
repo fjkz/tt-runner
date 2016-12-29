@@ -37,10 +37,10 @@ FAILURE
 - test_not_ok.sh
 ```
 
-The result is printed with TAP if `--tap` option is set.
+The result is printed with TAP if `--format tap` option is set.
 
 ```
-$ ttap sample/test-simple --tap
+$ ttap sample/test-simple --format tap
 not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
 1..2

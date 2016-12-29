@@ -6,7 +6,7 @@ set -eux
 
 create_succeeding_test ${WORKDIR}/test1.sh
 
-OUT=$(ttap ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --format tap)
 
 [[ ${OUT} == \
 "ok 1 test1.sh

@@ -15,9 +15,7 @@ END
 
 create_wrong_test ${WORKDIR}/test1.sh
 
-set +e
-OUT=$(ttap ${WORKDIR} --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --format tap) || :
 
 echo "${OUT}" | {
   read line; [[ $line == "not ok 1 test1.sh" ]]

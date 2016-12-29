@@ -8,7 +8,7 @@ create_succeeding_test ${WORKDIR}/test1.sh
 create_succeeding_test ${WORKDIR}/test2.sh
 create_succeeding_test ${WORKDIR}/test3.sh
 
-OUT=$(ttap ${WORKDIR} --skip-all --tap)
+OUT=$(ttap ${WORKDIR} --skip-all --format tap)
 
 [[ ${OUT} == \
 "ok 1 # SKIP test1.sh

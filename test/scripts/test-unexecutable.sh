@@ -7,9 +7,7 @@ set -eux
 create_succeeding_test ${WORKDIR}/test1.sh
 chmod 644 ${WORKDIR}/test1.sh
 
-set +e
-OUT=$(ttap ${WORKDIR} --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --format tap) || :
 
 [[ ${OUT} == \
 "not ok 1 test1.sh

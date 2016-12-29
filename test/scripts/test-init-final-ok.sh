@@ -9,7 +9,7 @@ create_succeeding_test ${WORKDIR}/test2.sh
 create_succeeding_test ${WORKDIR}/init.sh
 create_succeeding_test ${WORKDIR}/final.sh
 
-OUT=$(ttap ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --format tap)
 
 [[ ${OUT} == \
 "ok 1 init.sh

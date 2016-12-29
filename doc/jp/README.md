@@ -37,10 +37,10 @@ FAILURE
 - test_not_ok.sh
 ```
 
-`--tap` オプションを指定すると, TAP (Test Anything Protocol) フォーマットで結果を出力します.
+`--format tap` オプションを指定すると, TAP (Test Anything Protocol) フォーマットで結果を出力します.
 
 ```
-$ ttap sample/test-simple --tap
+$ ttap sample/test-simple --format tap
 not ok 1 test_not_ok.sh
 ok 2 test_ok.sh
 1..2

@@ -7,7 +7,7 @@ set -eux
 create_failing_test ${WORKDIR}/test1.sh
 
 set +e
-OUT=$(ttap ${WORKDIR} --tap)
+OUT=$(ttap ${WORKDIR} --format tap)
 if [[ $? == 0 ]]; then
   exit 1
 fi

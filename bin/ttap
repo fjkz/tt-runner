@@ -66,10 +66,9 @@ class MyParser(ArgumentParser):
                   'default: {0}').format(d))
 
         parser.add_argument(
-            '--tap',
-            action='store_true',
-            default=False,
-            help='show result with TAP format')
+            '--format', default='pretty', metavar='FORMAT',
+            choices=['pretty', 'tap'],
+            help="result format. 'pretty' (default), 'tap'")
 
         parser.add_argument(
             '--color', default='auto', metavar='M',
@@ -203,10 +202,7 @@ class Environment(dict):
         self['root dir'] = os.path.abspath(args.PATH[0])
         self['output dir'] = os.path.abspath(args.output[0])
 
-        if args.tap is True:
-            self['format'] = 'TAP'
-        else:
-            self['format'] = 'pretty'
+        self['format'] = args.format
 
         if args.color == 'always':
             self['color output'] = True
@@ -1528,7 +1524,7 @@ def main():
         console = Printer(sys.stdout)
         if world['format'] == 'pretty':
             console_format = PrettyFormat(console)
-        elif world['format'] == 'TAP':
+        elif world['format'] == 'tap':
             console_format = TAPFormat(console)
 
         multi_format = MultiFormat([file_format, console_format])

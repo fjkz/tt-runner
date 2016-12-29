@@ -9,9 +9,7 @@ create_failing_test ${WORKDIR}/test2.sh
 create_succeeding_test ${WORKDIR}/test3.sh
 create_succeeding_test ${WORKDIR}/test4.sh
 
-set +e
-OUT=$(ttap ${WORKDIR} --stop-on-failure --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --stop-on-failure --format tap) || :
 
 [[ ${OUT} == \
 "ok 1 test1.sh

@@ -37,9 +37,7 @@ chmod 755 ${WORKDIR}/test1.bats
 chmod 755 ${WORKDIR}/test2.t
 chmod 755 ${WORKDIR}/test3.t
 
-set +e
-OUT=$(ttap ${WORKDIR} --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --format tap) || :
 
 [[ ${OUT} == \
 "ok 1 test1.bats: a

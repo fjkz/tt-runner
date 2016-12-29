@@ -11,9 +11,7 @@ create_succeeding_test ${WORKDIR}/test2.sh
 create_failing_test ${WORKDIR}/init.sh
 create_succeeding_test ${WORKDIR}/final.sh
 
-set +e
-OUT=$(ttap ${WORKDIR} --tap)
-set -e
+OUT=$(ttap ${WORKDIR} --format tap) || :
 
 [[ ${OUT} == \
 "not ok 1 init.sh

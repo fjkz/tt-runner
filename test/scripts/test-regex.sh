@@ -10,7 +10,7 @@ create_succeeding_test ${WORKDIR}/1.test
 create_succeeding_test ${WORKDIR}/teardown.sh
 create_succeeding_test ${WORKDIR}/post.sh
 
-OUT=$(ttap ${WORKDIR} --tap \
+OUT=$(ttap ${WORKDIR} --format tap \
   --init-regex 'pre' \
   --before-regex 'setup' \
   --test-regex '.+\.test' \
