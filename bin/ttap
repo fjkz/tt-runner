@@ -67,8 +67,8 @@ class MyParser(ArgumentParser):
 
         parser.add_argument(
             '--format', default='pretty', metavar='FORMAT',
-            choices=['pretty', 'tap'],
-            help="result format. 'pretty' (default), 'tap'")
+            choices=['pretty', 'tap', 'silent'],
+            help="result format. 'pretty' (default), 'tap', or 'silent'")
 
         parser.add_argument(
             '--color', default='auto', metavar='M',
@@ -1258,6 +1258,18 @@ class Format:
 
     __metaclass__ = ABCMeta
 
+    @staticmethod
+    def get_format_class(name):
+        """Return a concrete Format class object."""
+        if name == 'pretty':
+            return PrettyFormat
+        elif name == 'tap':
+            return TAPFormat
+        elif name == 'silent':
+            return SilentFormat
+        else:
+            assert False
+
     @abstractmethod
     def __init__(self, printer):
         """Initialize the object."""
@@ -1411,6 +1423,30 @@ class TAPFormat(Format):
             .format(self.test_counter))
 
 
+class SilentFormat(Format):
+    """Format to print nothing."""
+
+    def __init__(self, printer):
+        """Initialize the object."""
+        pass
+
+    def print_header(self, plan):
+        """Do nothing."""
+        pass
+
+    def print_case_result(self, case_result):
+        """Do nothing."""
+        pass
+
+    def print_message_line(self, line):
+        """Do nothing."""
+        pass
+
+    def print_footer(self, plan):
+        """Do nothing."""
+        pass
+
+
 class MultiFormat(Format):
     """Write messages with multiple formats."""
 
@@ -1521,11 +1557,9 @@ def main():
             result_file, mode='w', encoding='utf8') as f:
         file_format = TAPFormat(Printer(f))
 
+        format_class = Format.get_format_class(world['format'])
         console = Printer(sys.stdout)
-        if world['format'] == 'pretty':
-            console_format = PrettyFormat(console)
-        elif world['format'] == 'tap':
-            console_format = TAPFormat(console)
+        console_format = format_class(console)
 
         multi_format = MultiFormat([file_format, console_format])
         plan.run(multi_format)
