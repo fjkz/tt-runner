@@ -105,6 +105,10 @@ class MyParser(ArgumentParser):
             '--stop-on-failure',
             action='store_true',
             help='skip remaining operations if an operation fails')
+        debug_group.add_argument(
+            '--tree',
+            action='store_true',
+            help='print the directory tree. do not run tests.')
 
         skip_group = debug_group.add_mutually_exclusive_group()
         skip_group.add_argument(
@@ -229,6 +233,7 @@ class Environment(dict):
 
         self['print log'] = args.print_log
         self['stop on failure'] = args.stop_on_failure
+        self['print tree'] = args.tree
 
         # note: can be changed in running
         self['skip all'] = args.skip_all
@@ -456,6 +461,10 @@ class NodeGroup(list):
         """Return node list sorted by path name."""
         return sorted(self, key=lambda node: node.path, reverse=reverse)
 
+    def is_empty(self):
+        """Return if this group is empty or not."""
+        return len(self) == 0
+
     @abstractmethod
     def accept(self, visitor):
         """Accept a visitor."""
@@ -542,52 +551,93 @@ class Tree():
 
         def get_string(self, tree):
             """Return string object."""
-            self.string = ''
-            self.indent = ''
+            self.lines = []
+            self.depth = 0
+            self.is_last = True
+            self.indents = []
+            self.color = None
             tree.root_node.accept(self)
-            return self.string
+            return '\n'.join(self.lines)
+
+        def __visit_edge(self, node):
+            indent = ''.join(self.indents)
+            if self.is_last is False:
+                pointer = '├── '
+            else:
+                pointer = '└── '
+            name = Printer.color_string(node.name(), self.color)
+            self.lines.append(indent + pointer + name)
 
         def visit_node(self, node):
-            self.string += self.indent + '- ' + node.name() + '\n'
+            if self.depth == 0:
+                self.lines.append(node.name())
+                self.indents.append('')
+            else:
+                self.__visit_edge(node)
+                if self.is_last is False:
+                    self.indents.append('│   ')
+                else:
+                    self.indents.append('    ')
 
-            indent_copy = copy(self.indent)
-            self.indent += '  '
+            self.depth += 1
+            node_groups = [node.inits, node.befores, node.runs,
+                           node.tests, node.afters, node.finals]
+            node_groups = [g for g in node_groups if not g.is_empty()]
+            for g in node_groups:
+                if g == node_groups[-1]:
+                    self.is_last = True
+                else:
+                    self.is_last = False
+                g.accept(self)
 
-            node.inits.accept(self)
-            node.befores.accept(self)
-            node.runs.accept(self)
-            node.tests.accept(self)
-            node.afters.accept(self)
-            node.finals.accept(self)
-
-            self.indent = indent_copy
+            self.indents.pop()
+            self.depth -= 1
 
         def visit_leaf(self, leaf):
-            self.string += self.indent + '- ' + leaf.name() + '\n'
+            self.__visit_edge(leaf)
+
+        def __visit_group(self, group, reverse=True):
+            is_last = self.is_last
+
+            sorted_g = group.sorted(reverse)
+            for node in sorted_g:
+                if node == sorted_g[-1] and is_last is True:
+                    self.is_last = True
+                else:
+                    self.is_last = False
+                node.accept(self)
+
+            self.is_last = is_last
 
         def visit_test_group(self, test_group):
-            for test in test_group.sorted():
-                test.accept(self)
+            self.__visit_group(test_group, reverse=False)
 
         def visit_run_group(self, run_group):
-            for run in run_group.sorted():
-                run.accept(self)
+            self.__visit_group(run_group, reverse=False)
 
         def visit_before_group(self, before_group):
-            for before in before_group.sorted():
-                before.accept(self)
+            color = self.color
+            self.color = 'yellow'
+            self.__visit_group(before_group, reverse=False)
+            self.color = color
 
         def visit_after_group(self, after_group):
-            for after in after_group.sorted(reverse=True):
-                after.accept(self)
+            color = self.color
+            self.color = 'blue'
+            self.__visit_group(after_group, reverse=True)
+            self.color = color
 
         def visit_init_group(self, init_group):
-            for init in init_group.sorted():
-                init.accept(self)
+            color = self.color
+            self.color = 'green'
+            self.__visit_group(init_group, reverse=False)
+            self.color = color
 
         def visit_final_group(self, final_group):
-            for final in final_group.sorted(reverse=True):
-                final.accept(self)
+            color = self.color
+            self.color = 'red'
+            self.__visit_group(final_group, reverse=True)
+            self.color = color
 
     def __str__(self):
         """Return the list of files in the tree."""
@@ -684,24 +734,33 @@ class Tree():
 class Printer():
     """A message printer."""
 
-    __color_head = {
-        'red': '\033[91m',
-        'green': '\033[92m',
-        'yellow': '\033[93m',
-        'blue': '\033[94m',
-    }
-
     def __init__(self, out):
         """Initialize a printer with a file object."""
         self.out = out
 
     def write(self, message, color=None):
         """Write a message to the file with color."""
-        if world['color output'] and color:
-            end = '\033[0m'
-            message = Printer.__color_head[color] + message + end
+        message = self.color_string(message, color)
         self.out.write(message)
         self.out.flush()
+
+    @staticmethod
+    def color_string(string, color):
+        """Encolor the given string."""
+        if world['color output'] is False or color is None:
+            return string
+
+        color_head = {
+            'red': '\033[91m',
+            'green': '\033[92m',
+            'yellow': '\033[93m',
+            'blue': '\033[94m',
+            'magenta': '\033[95m',
+            'cyan': '\033[96m',
+        }
+        color_tail = '\033[0m'
+
+        return color_head[color] + string + color_tail
 
 
 class NullFile(IOBase):
@@ -1544,10 +1603,21 @@ class MyError(Exception):
     pass
 
 
+def print_tree(directory):
+    """Print directory tree."""
+    tree = Tree(directory)
+    print(str(tree))
+
+
 def main():
     """Main function."""
     global world
     world = Environment()
+
+    if world['print tree'] is True:
+        print_tree(world['root dir'])
+        return 0
+
     world.setup()
     tree = Tree(world['root dir'])
     plan = Planner().create_plan(tree)

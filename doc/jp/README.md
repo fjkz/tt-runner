@@ -13,7 +13,7 @@ ttap はテスト結果を [TAP (Test Anything Protocol)](http://testanything.or
 以下のようなテストスクリプト群があったとします. 以降, ttap で実行されるテストスクリプト群のことをテストスイートと呼びます.
 
 ```
-sample/test-simple
+test-simple
 ├── test_not_ok.sh
 └── test_ok.sh
 ```
@@ -114,15 +114,14 @@ Before ノード・After ノードはそれぞれ, 各 Test ノードの前処�
 以下は実行例です.
 
 ```
-$ tree sample/test-before-after
-sample/test-before-after
-├── after1.sh
-├── after2.sh
+$ ttap --tree sample/test-before-after
+test-before-after
 ├── before1.sh
 ├── before2.sh
 ├── test1.sh
-└── test2.sh
-
+├── test2.sh
+├── after2.sh
+└── after1.sh
 $ ttap sample/test-before-after
 ✓ before1.sh.1
 ✓ before2.sh.1
@@ -155,15 +154,14 @@ Before ノード・After ノードと同様に, Init ノードは昇順, Final �
 以下は実行例です.
 
 ```
-$ tree sample/test-init-final
-sample/test-init-final
-├── final1.sh
-├── final2.sh
+$ ttap --tree sample/test-init-final
+test-init-final
 ├── init1.sh
 ├── init2.sh
 ├── test1.sh
-└── test2.sh
-
+├── test2.sh
+├── final2.sh
+└── final1.sh
 $ ttap sample/test-init-final
 ✓ init1.sh
 ✓ init2.sh
