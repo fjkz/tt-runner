@@ -6,4 +6,4 @@ python:
   - "3.2"
   - "3.5"
 script:
-  - ./test/exec_tests.sh --tap
+  - ./test/exec_tests.sh --format tap
