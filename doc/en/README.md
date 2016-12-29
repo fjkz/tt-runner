@@ -193,6 +193,10 @@ Each test should be independent. In order to force tests to be independent, `tta
 
 Preconditioning operations should be idempotent. We can check idempotency with `--multiply-preconditioning` option. This option runs preconditioning operations twice in a row. Note that postconditioning operations do not need to be idempotent because they should expect preconditions are satisfied.
 
+## Installation
+
+Check out a copy of the ttap repository. Then add the ttap `bin` directory to your `PATH` environment variable.
+
 ## Requirement
 
 - Linux or UNIX
