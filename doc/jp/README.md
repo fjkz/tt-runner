@@ -46,10 +46,22 @@ ok 2 test_ok.sh
 1..2
 ```
 
+xUnit 風の出力も `--format dots` オプションから利用できます。
+
+```
+$ ttap sample/test-simple --format dots
+F.
+
+Failures:
+ - test_not_ok.sh
+
+2 cases, 1 failures
+```
+
 テストの結果は, `-o` オプションで指定されたディレクトリにも出力されます. `result.txt` は TAP フォーマットのテスト結果です. `*.out` はそれぞれのスクリプトの標準出力および標準エラー出力です.
 
 ```
-$ ttap sample/test-simple -o result > /dev/null
+$ ttap sample/test-simple -format silent -o result
 $ ls result
 result.txt  test_not_ok.sh.out  test_ok.sh.out
 ```

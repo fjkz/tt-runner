@@ -46,10 +46,22 @@ ok 2 test_ok.sh
 1..2
 ```
 
+xUnit-like formatted output is also available with `--format dots` option.
+
+```
+$ ttap sample/test-simple --format dots
+F.
+
+Failures:
+ - test_not_ok.sh
+
+2 cases, 1 failures
+```
+
 The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
 
 ```
-$ ttap sample/test-simple -o result > /dev/null
+$ ttap sample/test-simple -format silent -o result
 $ ls result
 result.txt  test_not_ok.sh.out  test_ok.sh.out
 ```

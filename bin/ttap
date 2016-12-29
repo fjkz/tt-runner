@@ -67,8 +67,9 @@ class MyParser(ArgumentParser):
 
         parser.add_argument(
             '--format', default='pretty', metavar='FORMAT',
-            choices=['pretty', 'tap', 'silent'],
-            help="result format. 'pretty' (default), 'tap', or 'silent'")
+            choices=['pretty', 'tap', 'xunit', 'silent'],
+            help=("result format. "
+                  "'pretty' (default), 'tap', 'xunit', or 'silent'"))
 
         parser.add_argument(
             '--color', default='auto', metavar='M',
@@ -1326,6 +1327,8 @@ class Format:
             return TAPFormat
         elif name == 'silent':
             return SilentFormat
+        elif name == 'xunit':
+            return XunitFormat
         else:
             assert False
 
@@ -1480,6 +1483,55 @@ class TAPFormat(Format):
         self.printer.write(
             '1..{0:d}\n'
             .format(self.test_counter))
+
+
+class XunitFormat(Format):
+    """Show progress like xUnit."""
+
+    def __init__(self, printer):
+        """Initialize the object."""
+        self.printer = printer
+
+    def print_header(self, plan):
+        """xUnit-format has no header."""
+        pass
+
+    def print_case_result(self, case_result):
+        """Print a test case result with one character."""
+        if case_result.status == CaseResult.SUCCEEDED:
+            s = '.'
+        elif case_result.status == CaseResult.FAILED:
+            s = 'F'
+        elif case_result.status == CaseResult.SKIPPED:
+            s = 'S'
+        else:
+            assert False
+
+        self.printer.write(s)
+
+    def print_message_line(self, line):
+        """xUnit-format does not print messages."""
+        pass
+
+    def print_footer(self, plan):
+        """Print a footer message."""
+        self.printer.write('\n')
+
+        if not plan.has_succeeded():
+            self.printer.write('\nFailures:\n')
+            for case in plan.failed_cases():
+                self.printer.write(' - {0:s}\n'.format(case.description))
+
+        message = '\n{0:d} cases, {1:d} failures'.format(
+            plan.num_cases(), len(plan.failed_cases()))
+
+        n = len(plan.skipped_cases())
+        if n > 0:
+            message += ', {0:d} skipped\n'.format(n)
+        else:
+            message += '\n'
+
+        self.printer.write(message)
 
 
 class SilentFormat(Format):
