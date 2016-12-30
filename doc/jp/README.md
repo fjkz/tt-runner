@@ -46,10 +46,10 @@ ok 2 test_ok.sh
 1..2
 ```
 
-xUnit 風の出力も `--format dots` オプションから利用できます。
+xUnit 風の出力も `--format xunit` オプションから利用できます。
 
 ```
-$ ttap sample/test-simple --format dots
+$ ttap sample/test-simple --format xunit
 F.
 
 Failures:

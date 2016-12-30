@@ -46,10 +46,10 @@ ok 2 test_ok.sh
 1..2
 ```
 
-xUnit-like formatted output is also available with `--format dots` option.
+xUnit-like formatted output is also available with `--format xunit` option.
 
 ```
-$ ttap sample/test-simple --format dots
+$ ttap sample/test-simple --format xunit
 F.
 
 Failures:
