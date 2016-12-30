@@ -1,10 +1,8 @@
 Japanese in UTF-8
 
-# ttap: a testing framework with file system hierarchy
+# ttap: ファイルシステム階層によるテスティングフレームワーク
 
-**ttap** はテストスクリプト群のディレクトリ構成のフレームワークです. テストスクリプト群のディレクトリ構成を元にテストを計画し, 実行します.
-
-ttap はテスト結果を [TAP (Test Anything Protocol)](http://testanything.org/) で出力することができます. また, ttap を TAP を出力する他のテスティングフレームワーク (i.e. Bats) と連携させることができます.
+**ttap** はテストスクリプト群のディレクトリ構成のフレームワークです. 実行可能なテストスクリプトファイル群のディレクトリ構成を定義し, ファイルシステム階層を元にテストスクリプト群を実行します.
 
 ## 使用法
 
@@ -37,7 +35,7 @@ FAILURE
 - test_not_ok.sh
 ```
 
-`--format tap` オプションを指定すると, TAP (Test Anything Protocol) フォーマットで結果を出力します.
+`--format tap` オプションを指定すると, [TAP (Test Anything Protocol)](http://testanything.org/) フォーマットで結果を出力します.
 
 ```
 $ ttap sample/test-simple --format tap
@@ -82,7 +80,7 @@ result.txt  test_not_ok.sh.out  test_ok.sh.out
 - `TTAP_ROOT_DIR` 変数には,  `ttap` コマンドに指定されたテストスイートのルートディレクトリが含まれます.
 - `TTAP_OUTPUT_DIR` 変数には,  `ttap` コマンドに `-o` オプションで指定されたテスト結果が出力されるディレクトリが含まれます.
 
-テストスクリプトの出力を TAP フォーマットとすると, １つのファイルに複数のテストを記述できます. 例えば, [Bats](https://github.com/sstephenson/bats) が利用できます. ファイル名の末尾が `.bats` か `.t` であるスクリプトは TAP フォーマットでテスト結果を出力することが期待されます. これらの拡張子は `--tap-regex` オプションで変更することができます.
+テストスクリプトの出力を [TAP (Test Anything Protocol)](http://testanything.org/) フォーマットとすると, １つのファイルに複数のテストを記述できます. 例えば, [Bats](https://github.com/sstephenson/bats) が利用できます. ファイル名の末尾が `.bats` か `.t` であるスクリプトは TAP フォーマットでテスト結果を出力することが期待されます. これらの拡張子は `--tap-regex` オプションで変更することができます.
 
 ### ディレクトリ構成
 
@@ -111,11 +109,9 @@ Test ノードとなっているスクリプトにテストされるべき操作
 
 ### Run ノード
 
-Run ノードは他のノードの子ノードとして利用されます. Before, After, Init, Final ノードは配下に Run ノード以外を持つことはできません.
+Run ノードは他のノードの子ノードとして利用されます. Before, After, Init, Final ノードは配下に Run ノード以外のノードを持つことはできません.  また、同一ディレクトリ内に Run ノードと他のノード種別を含むことはできません.
 
-また、同一ディレクトリ内に Run ノードと他のノード種別を含むことはできません.
-
-Test ノードと異なり, 同一ディレクトリ内の Run ノードは独立ではありません. Run ノードには順序があり, 実行時には昇順に実行されます.
+Test ノードと異なり, 同一ディレクトリ内の Run ノードには順序があります. Run ノードは昇順に実行されます.
 
 ### Before / After ノード
 
@@ -134,24 +130,18 @@ test-before-after
 ├── test2.sh
 ├── after2.sh
 └── after1.sh
-$ ttap sample/test-before-after
-✓ before1.sh.1
-✓ before2.sh.1
-✓ test1.sh
-✓ after2.sh.1
-✓ after1.sh.1
-✓ before1.sh.2
-✓ before2.sh.2
-✓ test2.sh
-✓ after2.sh.2
-✓ after1.sh.2
-
-cases            : 10
-succeeded        : 10
-failed           : 0
-time taken [sec] : 0
-
-SUCCESS
+$ ttap --format tap sample/test-before-after
+ok 1 before1.sh.1
+ok 2 before2.sh.1
+ok 3 test1.sh
+ok 4 after2.sh.1
+ok 5 after1.sh.1
+ok 6 before1.sh.2
+ok 7 before2.sh.2
+ok 8 test2.sh
+ok 9 after2.sh.2
+ok 10 after1.sh.2
+1..10
 ```
 
 なお, 前処理が失敗した場合には, テストはスキップされます.
@@ -174,31 +164,26 @@ test-init-final
 ├── test2.sh
 ├── final2.sh
 └── final1.sh
-$ ttap sample/test-init-final
-✓ init1.sh
-✓ init2.sh
-✓ test1.sh
-✓ test2.sh
-✓ final2.sh
-✓ final1.sh
-
-cases            : 6
-succeeded        : 6
-failed           : 0
-time taken [sec] : 0
-
-SUCCESS
+$ ttap --format tap sample/test-init-final
+ok 1 init1.sh
+ok 2 init2.sh
+ok 3 test1.sh
+ok 4 test2.sh
+ok 5 final2.sh
+ok 6 final1.sh
+1..6
 ```
 
 ### テストスイートのテスト
 
 テストスイートのテストのために `ttap` では以下のコマンドラインオプションが利用できます.
 
+- `--tree` オプションが付与されると, テストスイートのファイルシステム階層がコンソールに出力されます.
 - `--print-log` オプションが付与されると, 実行中のスクリプトの出力がコンソールに出力されます.
 - `--stop-on-failure` オプションが付与されると, ひとつの操作が失敗したときに残りの操作の実行はすべてスキップされます. この際, 後処理もスキップされます.
 - `--skip-all` オプションが付与されると, すべての操作はスキップされます. このオプションはスクリプトの実行計画の確認に利用します.
-- `--only` オプションにスクリプト名が指定されると, 指定されたスクリプトのみが実行されます. ディレクトリを指定することも可能です. ただし, 前処理・後処理の操作は自動的に実行されないことに注意してください.
 - `--skip` オプションにスクリプト名が指定されると, 指定されたスクリプトはスキップされます. ディレクトリを指定することも可能です.
+- `--only` オプションにスクリプト名が指定されると, 指定されたスクリプトのみが実行されます. ディレクトリを指定することも可能です. ただし, 前処理・後処理の操作は自動的に実行されないことに注意してください.
 
 ### テストスイートの品質向上のために
 

@@ -2,9 +2,7 @@
 
 [![Build Status](https://travis-ci.org/fjkz/ttap.svg?branch=master)](https://travis-ci.org/fjkz/ttap)
 
-*ttap* is a directory structure framework of test scripts. It plans testing procedure with file system hierarchy of test scripts, and it executes testing.
-
-ttap can output testing results with [TAP (Test Anything Protocol)](http://testanything.org/). And it can be combined with other testing frameworks that output TAP, i.e. Bats.
+*ttap* is a directory structure framework of test scripts. It defines the directory structure of your executable test script files and executes the scripts with the file system hierarchy.
 
 ## Usage
 
@@ -37,7 +35,7 @@ FAILURE
 - test_not_ok.sh
 ```
 
-The result is printed with TAP if `--format tap` option is set.
+The result is printed with [TAP (Test Anything Protocol)](http://testanything.org/) if `--format tap` option is set.
 
 ```
 $ ttap sample/test-simple --format tap
@@ -58,7 +56,7 @@ Failures:
 2 cases, 1 failures
 ```
 
-The result is also output to the directory specified with `-o` option. `result.txt` is the TAP-formatted result. `*.out` are the standard out and the standard error of each script.
+The result is also output to the directory specified with `-o` option. `result.txt` is the [TAP (Test Anything Protocol)](http://testanything.org/)-formatted result. `*.out` are the standard out and the standard error of each script.
 
 ```
 $ ttap sample/test-simple -format silent -o result
@@ -82,7 +80,7 @@ The following environment variables are assigned when scripts are run.
 - `TTAP_ROOT_DIR` has the root directory path of the test suite.
 - `TTAP_OUTPUT_DIR` has the directory path where the test result will be put.
 
-Multiple test cases can be written in a file if the scripts output is formatted with TAP. For example, [Bats](https://github.com/sstephenson/bats) can be used. Scripts which file names end with `.bats` or `.t` are expected to output TAP-formatted results. These suffixes can be changed with `--tap-regex` option.
+Multiple test cases can be written in a file if the output of the scripts is formatted with TAP. For example, [Bats](https://github.com/sstephenson/bats) can be used. Scripts which file names end with `.bats` or `.t` are expected to output TAP-formatted results. These suffixes can be changed with `--tap-regex` option.
 
 ### Directory Structure
 
@@ -113,7 +111,7 @@ Run-nodes are used as children of other node types. Before, after, init and fina
 
 Additionally, run-nodes and other type nodes must not be included in the same directory.
 
-Unlike test-nodes, run-nodes have a sequence. They are run by the ascending order.
+Run-nodes in a directory have a sequence unlike test-nodes. They are run by the ascending order.
 
 #### Before-Nodes / After-Nodes
 
@@ -132,24 +130,18 @@ test-before-after
 ├── test2.sh
 ├── after2.sh
 └── after1.sh
-$ ttap sample/test-before-after
-✓ before1.sh.1
-✓ before2.sh.1
-✓ test1.sh
-✓ after2.sh.1
-✓ after1.sh.1
-✓ before1.sh.2
-✓ before2.sh.2
-✓ test2.sh
-✓ after2.sh.2
-✓ after1.sh.2
-
-cases            : 10
-succeeded        : 10
-failed           : 0
-time taken [sec] : 0
-
-SUCCESS
+$ ttap --format tap sample/test-before-after
+ok 1 before1.sh.1
+ok 2 before2.sh.1
+ok 3 test1.sh
+ok 4 after2.sh.1
+ok 5 after1.sh.1
+ok 6 before1.sh.2
+ok 7 before2.sh.2
+ok 8 test2.sh
+ok 9 after2.sh.2
+ok 10 after1.sh.2
+1..10
 ```
 
 Note that when a preconditioning operation fails the following tests are skipped.
@@ -171,31 +163,26 @@ test-init-final
 ├── test2.sh
 ├── final2.sh
 └── final1.sh
-$ ttap sample/test-init-final
-✓ init1.sh
-✓ init2.sh
-✓ test1.sh
-✓ test2.sh
-✓ final2.sh
-✓ final1.sh
-
-cases            : 6
-succeeded        : 6
-failed           : 0
-time taken [sec] : 0
-
-SUCCESS
+$ ttap --format tap sample/test-init-final
+ok 1 init1.sh
+ok 2 init2.sh
+ok 3 test1.sh
+ok 4 test2.sh
+ok 5 final2.sh
+ok 6 final1.sh
+1..6
 ```
 
 ## Testing of Test Suites
 
 The following command line options are available for testing of test suites.
 
+- `--tree` option prints the file system hierarchy of the test suites.
 - `--print-log` option prints output of running scripts on the console.
 - `--stop-on-failure` option skips remaining operations if an operation fails. The postconditioning is also skipped then.
 - `--skip-all` option skips all operations. We can know the execution plan.
-- `--only` option runs only specified scripts. We can also specify directory names. Note that preconditioning and postconditioning operations are not automatically executed.
 - `--skip` option skips specified scripts. We can also specify directory names.
+- `--only` option runs only specified scripts. We can also specify directory names. Note that preconditioning and postconditioning operations are not automatically executed.
 
 ## Improvement of Test Suites
 
