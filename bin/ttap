@@ -99,6 +99,10 @@ class MyParser(ArgumentParser):
         debug_group = parser.add_argument_group(
             'options for testing of test suites')
         debug_group.add_argument(
+            '--tree',
+            action='store_true',
+            help='print the directory tree and exit.')
+        debug_group.add_argument(
             '--print-log',
             action='store_true',
             help='print stdout and stderr of running scripts')
@@ -106,10 +110,6 @@ class MyParser(ArgumentParser):
             '--stop-on-failure',
             action='store_true',
             help='skip remaining operations if an operation fails')
-        debug_group.add_argument(
-            '--tree',
-            action='store_true',
-            help='print the directory tree. do not run tests.')
 
         skip_group = debug_group.add_mutually_exclusive_group()
         skip_group.add_argument(
@@ -117,19 +117,19 @@ class MyParser(ArgumentParser):
             action='store_true',
             help='skip all operations')
         skip_group.add_argument(
-            '--only',
-            metavar='NAME',
-            nargs='+',
-            type=str,
-            default=[],
-            help='run only specified scripts')
-        skip_group.add_argument(
             '--skip',
             metavar='NAME',
             nargs='+',
             type=str,
             default=[],
             help='skip specified scripts')
+        skip_group.add_argument(
+            '--only',
+            metavar='NAME',
+            nargs='+',
+            type=str,
+            default=[],
+            help='run only specified scripts')
 
         prefix_group = parser.add_argument_group(
             'regular expressions for classifying node types')
