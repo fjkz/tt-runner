@@ -418,7 +418,7 @@ class Leaf():
     """A script file."""
 
     def __init__(self, path):
-        """Initalize the object."""
+        """Initialize the object."""
         self.path = path
 
     def __str__(self):
