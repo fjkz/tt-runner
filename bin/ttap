@@ -1119,7 +1119,7 @@ class Operation():
                 self.__abort(CaseResult.FAILED, message)
                 return
 
-            except KeyboardInterrupt as i:
+            except KeyboardInterrupt:
                 process.send_signal(SIGINT)
                 process.wait()
                 message = 'KeyboardInterrupt'
