@@ -196,8 +196,8 @@ Check out a copy of the ttap repository. Then add the ttap `bin` directory to yo
 
 ## Requirement
 
-- Linux or UNIX
-- Python 2.7 or 3.x
+- Linux
+- Python 2.7 or 3.5+
 
 ## License
 

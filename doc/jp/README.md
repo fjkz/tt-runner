@@ -197,8 +197,8 @@ ttap のリポジトリをチェックアウトして、ttap の `bin` ディレ
 
 ## 必要環境
 
-- Linux or UNIX
-- Python 2.7 or 3.x
+- Linux
+- Python 2.7 or 3.5+
 
 ## ライセンス
 
